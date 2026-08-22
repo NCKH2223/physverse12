@@ -137,12 +137,12 @@
               <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
                 PhysVerse 12
               </span>
-              <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                BÀI 1
+            <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                THÍ NGHIỆM 1
               </span>
             </div>
             <p class="text-xs text-slate-400 line-clamp-1 font-normal">
-              Chuyển động Brown & Mô hình Động học phân tử
+              Chuyển động Brown
             </p>
           </div>
         </a>
@@ -210,7 +210,7 @@
           </div>
 
           <!-- Interactive 2D Canvas Viewport -->
-          <div id="canvas-wrapper" class="w-full h-[360px] sm:h-[420px] rounded-xl overflow-hidden relative bg-slate-950 border border-slate-800/80 shadow-inner flex items-center justify-center">
+          <div id="canvas-wrapper" class="w-full aspect-[4/3] sm:h-[400px] max-h-[420px] rounded-xl overflow-hidden relative bg-slate-950 border border-slate-800/80 shadow-inner flex items-center justify-center">
             <canvas id="brown-canvas" class="w-full h-full cursor-crosshair block"></canvas>
             
             <!-- Live Canvas Watermark / Overlay State -->
@@ -1155,7 +1155,7 @@
       // Speed scale derived from Temperature T: 273K -> 373K provides 1.0x -> 2.8x speed increase
       const tempProgress = Math.max(0, Math.min(1, (state.temperatureK - 273) / 100));
       const tempFactor = 1.0 + tempProgress * 1.8;
-      const targetSpeed = tempFactor * 150;
+      const targetSpeed = tempFactor * 95;
 
       // 1. Update Water Molecules & Collision with Pollen
       for (let i = 0; i < state.molecules.length; i++) {
@@ -1199,7 +1199,7 @@
             const restitution = 0.98;
             const impulse = -(1 + restitution) * velAlongNormal / (1 / m.mass + 1 / p.mass);
             // Heightened impulse scaling with temperature for prominent high-temp vibration & zig-zag
-            const pollenKickMultiplier = 2.4 + tempProgress * 2.6;
+            const pollenKickMultiplier = 1.3 + tempProgress * 2.2;
 
             // Update velocities
             m.vx += (impulse / m.mass) * nx;
