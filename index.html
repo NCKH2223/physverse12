@@ -822,7 +822,7 @@
     // 15 Thí nghiệm thuộc 4 Chương SGK Vật lí 12 Kết nối tri thức
     const initialExperiments = [
       // CHƯƠNG I: VẬT LÍ NHIỆT (TN1 -> TN4)
-      { id: 1, chapter: 1, chapterTitle: "CHƯƠNG I: VẬT LÍ NHIỆT", title: "Chuyển động Brown và Cấu trúc phân tử", code: "TN-01-BROWN", filename: "brown.html", desc: "Quan sát chuyển động hỗn loạn không ngừng của các hạt phấn hoa trong nước, chứng minh bản chất động học phân tử.", icon: "fa-atom", status: "open" },
+      { id: 1, chapter: 1, chapterTitle: "CHƯƠNG I: VẬT LÍ NHIỆT", title: "Chuyển động Brown", code: "TN-01-BROWN", filename: "brown.html", desc: "Quan sát chuyển động hỗn loạn không ngừng của các hạt phấn hoa trong nước, chứng minh bản chất động học phân tử.", icon: "fa-atom", status: "open" },
       { id: 2, chapter: 1, chapterTitle: "CHƯƠNG I: VẬT LÍ NHIỆT", title: "Đo nhiệt dung riêng của nước", code: "TN-02-HEATCAP", filename: "heat_capacity.html", desc: "Sử dụng nhiệt lượng kế và cảm biến nhiệt độ để xác định nhiệt dung riêng của nước c ≈ 4180 J/(kg.K).", icon: "fa-temperature-arrow-up", status: "open" },
       { id: 3, chapter: 1, chapterTitle: "CHƯƠNG I: VẬT LÍ NHIỆT", title: "Đo nhiệt nóng chảy riêng của nước đá", code: "TN-03-LATENTFUS", filename: "latent_heat_fusion.html", desc: "Xác định nhiệt lượng cần cung cấp để làm nóng chảy hoàn toàn 1 kg nước đá ở 0°C (λ ≈ 3.34×10⁵ J/kg).", icon: "fa-icicles", status: "locked" },
       { id: 4, chapter: 1, chapterTitle: "CHƯƠNG I: VẬT LÍ NHIỆT", title: "Đo nhiệt hóa hơi riêng của nước", code: "TN-04-LATENTVAP", filename: "latent_heat_vap.html", desc: "Khảo sát quá trình sôi và đo nhiệt lượng cần thiết để làm bay hơi nước ở 100°C (L ≈ 2.26×10⁶ J/kg).", icon: "fa-cloud-meatball", status: "locked" },
@@ -1996,7 +1996,7 @@ function exportGradebookCSV() {
       `;
 
       exportList.forEach((s, idx) => {
-        const exp = experiments.find(e => e.id === s.expId) || { code: "TN-01-BROWN", title: "Chuyển động Brown và Cấu trúc phân tử" };
+        const exp = experiments.find(e => e.id === s.expId) || { code: "TN-01-BROWN", title: "Chuyển động Brown" };
         const isSub = s.status === 'submitted' && s.score !== null && s.score !== undefined;
         
         // Chuẩn hóa tên lớp có tiền tố "Lớp" để Excel không bao giờ hiểu nhầm thành ngày tháng
