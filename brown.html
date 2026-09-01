@@ -1,0 +1,2966 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhysVerse 12 - Thí nghiệm 1: Chuyển động Brown</title>
+  
+  <!-- Safe window.fetch descriptor guard for sandbox iframe environments -->
+  <script>
+    (function() {
+      try {
+        var _f = window.fetch;
+        Object.defineProperty(window, 'fetch', {
+          get: function() { return _f; },
+          set: function(fn) { _f = fn; },
+          configurable: true,
+          enumerable: true
+        });
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- Google Fonts: Be Vietnam Pro & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN with custom config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            slate: {
+              950: '#030712',
+              900: '#0f172a',
+              850: '#111e38',
+              800: '#1e293b',
+              700: '#334155',
+              600: '#475569',
+            },
+            brand: {
+              cyan: '#06b6d4',
+              sky: '#0ea5e9',
+              amber: '#f59e0b',
+              emerald: '#10b981',
+              indigo: '#6366f1',
+              violet: '#8b5cf6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome 6.5.1, SweetAlert2, Canvas-Confetti -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      background-color: #030712;
+      color: #f3f4f6;
+      font-family: "Be Vietnam Pro", sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Custom Glassmorphism Panels */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .glass-card-amber {
+      background: rgba(245, 158, 11, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    /* Custom Range Input */
+    input[type=range] {
+      accent-color: #06b6d4;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0ea5e9;
+    }
+
+    /* ==========================================================================
+       BÀN GIẢNG DẠY: TỐI ƯU CHIỀU CAO & KHÓA CUỘN TRIỆT ĐỂ
+       ========================================================================== */
+    #split-teaching-view #split-lab-host {
+      flex-direction: column !important;
+      overflow: hidden !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      padding: 6px 14px 10px 14px !important;
+      gap: 6px !important;
+    }
+
+    #split-teaching-view #split-lab-content {
+      flex: 1 1 auto !important;
+      height: calc(100vh - 58px) !important;
+      overflow-y: auto !important;
+    }
+
+    #split-teaching-view #split-lab-content > .grid,
+    #split-teaching-view #lab-workspace-container > .grid {
+      height: auto !important;
+      gap: 14px !important;
+    }
+
+    /* Tối ưu khung Canvas trên Bàn Giảng Dạy */
+    #split-teaching-view #canvas-wrapper {
+      height: 360px !important;
+      min-height: 340px !important;
+      max-height: 380px !important;
+      aspect-ratio: auto !important;
+    }
+
+    #split-teaching-view .lg\\:col-span-7 .glass-panel,
+    #split-teaching-view .lg\\:col-span-5 .glass-panel {
+      padding: 10px 12px !important;
+      gap: 8px !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- ========================================================================= -->
+  <!-- HEADER & NAVIGATION BAR                                                   -->
+  <!-- ========================================================================= -->
+  <header class="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl px-4 py-2.5 sm:px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Lesson Info -->
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="flex items-center gap-2.5 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 p-0.5 shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+            <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-cyan-400 font-bold">
+              <i class="fa-solid fa-atom text-xl animate-spin" style="animation-duration: 12s;"></i>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+                PhysVerse 12
+              </span>
+              <span class="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                Chương I: Vật lí nhiệt
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm font-semibold text-slate-200 line-clamp-1">
+              Thí nghiệm 1: Chuyển động Brown
+            </p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Action Navigation Buttons -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        
+        <!-- User Badge -->
+        <div id="header-user-badge" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl glass-card text-xs text-slate-300">
+          <i class="fa-regular fa-circle-user text-cyan-400 text-sm"></i>
+          <span class="text-slate-400 font-mono">Học sinh:</span>
+          <strong id="header-student-name" class="text-cyan-300 font-semibold font-mono">Học sinh</strong>
+        </div>
+
+        <!-- Teacher Mode Button -->
+        <button id="teacher-mode-btn" onclick="toggleTeacherModal()" class="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold glass-card-amber text-amber-300 hover:bg-amber-500/20 border border-amber-500/40 flex items-center gap-2 transition-all shadow-sm">
+          <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
+          <span class="hidden sm:inline">Chế độ</span> Giáo viên
+        </button>
+
+        <!-- Home Button -->
+        <a href="index.html" class="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-semibold glass-card text-slate-200 hover:text-white hover:bg-slate-800/80 border border-slate-700 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-house text-cyan-400"></i>
+          <span class="hidden sm:inline">Trang chủ</span>
+        </a>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <main class="max-w-7xl mx-auto w-full px-3 py-4 sm:px-6 sm:py-6 flex flex-col gap-6">
+
+    <!-- SEQUENTIAL GUIDED MISSIONS SYSTEM -->
+    <section id="mission-system-card" class="glass-panel rounded-2xl p-4 sm:p-5 border border-cyan-500/40 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Header & Progress Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700/60 relative z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 font-bold">
+            <i class="fa-solid fa-list-check text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+              <span>4 Nhiệm vụ Khám phá Thí nghiệm</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                Tuần tự từng bước
+              </span>
+            </h3>
+            <p class="text-xs text-slate-400">Hoàn thành 4 bước trải nghiệm mô phỏng để mở khóa Bài kiểm tra đánh giá.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 self-end sm:self-auto">
+          <div class="flex flex-col items-end gap-1">
+            <div class="flex items-center gap-1.5 text-xs font-mono">
+              <span class="text-slate-400">Tiến độ:</span>
+              <strong id="mission-progress-text" class="text-cyan-300 font-bold">0/4 (0%)</strong>
+            </div>
+            <div class="w-32 sm:w-44 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div id="mission-progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500 rounded-full" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <button id="btn-unlock-quiz" onclick="goToQuizModule()" disabled class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60">
+            <i id="btn-unlock-quiz-icon" class="fa-solid fa-lock"></i>
+            <span id="btn-unlock-quiz-text">Bài kiểm tra (5 câu)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 MISSIONS LIST -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 relative z-10">
+        
+        <!-- NHIỆM VỤ 1 -->
+        <div id="mission-card-1" class="p-3.5 rounded-xl border transition-all duration-300 bg-slate-900/90 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs flex items-center justify-center border border-cyan-400/40">1</span>
+                <h4 class="font-bold text-xs sm:text-sm text-white">Chuyển động Zic-zac</h4>
+              </div>
+              <span id="mission-badge-1" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                <i class="fa-solid fa-spinner fa-spin text-[9px]"></i> Đang làm
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Tích chọn <strong>"Vẽ vết quỹ đạo"</strong> để theo dõi hình dạng đường đi thực tế của hạt phấn hoa.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+            <div class="flex items-center gap-1 text-slate-400">
+              <i class="fa-regular fa-clock text-cyan-400"></i>
+              <span>Thời gian: <strong id="m1-timer-text" class="text-cyan-300">0.0s / 5.0s</strong></span>
+            </div>
+            <div class="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="m1-timer-bar" class="h-full bg-cyan-400 transition-all duration-100" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NHIỆM VỤ 2 -->
+        <div id="mission-card-2" class="p-3.5 rounded-xl border transition-all duration-300 bg-slate-900/40 border-slate-800 opacity-60 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center border border-slate-700">2</span>
+                <h4 class="font-bold text-xs sm:text-sm text-slate-300">Tác động Nhiệt độ cao</h4>
+              </div>
+              <span id="mission-badge-2" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                <i class="fa-solid fa-lock text-[9px]"></i> Đang khóa
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Kéo <strong>Nhiệt độ (T) lên &ge; 350 K</strong> và giữ trong <strong>3 giây</strong> để so sánh sự thay đổi tốc độ đổi hướng của hạt phấn hoa.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+            <div class="flex items-center gap-1 text-slate-400">
+              <i class="fa-solid fa-fire text-amber-400"></i>
+              <span>T: <strong id="m2-temp-current" class="text-amber-300">300 K</strong></span>
+            </div>
+            <span id="m2-timer-text" class="text-slate-400 font-bold">0.0s / 3.0s</span>
+          </div>
+        </div>
+
+        <!-- NHIỆM VỤ 3 -->
+        <div id="mission-card-3" class="p-3.5 rounded-xl border transition-all duration-300 bg-slate-900/40 border-slate-800 opacity-60 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center border border-slate-700">3</span>
+                <h4 class="font-bold text-xs sm:text-sm text-slate-300">Kính hiển vi Robert Brown</h4>
+              </div>
+              <span id="mission-badge-3" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                <i class="fa-solid fa-lock text-[9px]"></i> Đang khóa
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Tắt công tắc <strong>"Hiện lớp phân tử nước"</strong> để tái hiện góc nhìn kính hiển vi năm 1827 của Robert Brown.
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+            <div class="flex items-center gap-1 text-slate-400">
+              <i class="fa-solid fa-eye text-cyan-400"></i>
+              <span id="m3-state-text" class="text-amber-300">Đang hiện phân tử nước</span>
+            </div>
+            <button id="btn-quick-m3-hide" onclick="quickHideMolecules()" disabled class="px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[10px]">
+              Tắt lớp nước
+            </button>
+          </div>
+        </div>
+
+        <!-- NHIỆM VỤ 4 -->
+        <div id="mission-card-4" class="glass-card rounded-2xl p-4 border border-slate-800 relative flex flex-col justify-between gap-3 opacity-50 transition-all">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center font-mono">4</span>
+                <h4 class="font-bold text-white text-xs sm:text-sm">Giải mã bản chất</h4>
+              </div>
+              <span id="mission-badge-4" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-500 font-mono border border-slate-700/50">
+                <i class="fa-solid fa-lock mr-1"></i>Đang khóa
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Tổng hợp hiện tượng quan sát được để đưa ra lời giải thích khoa học cho chuyển động của hạt.
+            </p>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            <span class="text-[11px] font-mono text-slate-400">Thử thách đúc kết</span>
+            <button id="btn-confirm-m4" onclick="confirmMission4()" disabled class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 text-xs font-bold flex items-center gap-1 cursor-not-allowed transition-all">
+              <i class="fa-solid fa-key"></i>
+              <span>Giải mã</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TOP SECTION: SIMULATION WORKSPACE (ĐƯỢC BỌC TRONG lab-workspace-container) -->
+    <!-- ========================================================================= -->
+    <div id="lab-workspace-container" class="w-full">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- LEFT: CANVAS VIEWPORT (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-3">
+          
+          <div class="glass-panel rounded-2xl p-3 sm:p-4 border border-cyan-500/30 shadow-2xl relative flex flex-col">
+            
+            <div class="flex items-center justify-between gap-2 pb-2.5 mb-2 border-b border-slate-800 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-white tracking-wide flex items-center gap-1.5">
+                  <i class="fa-solid fa-microscope text-cyan-400"></i> Kính hiển vi quang học
+                </span>
+                <span class="text-[11px] font-mono text-slate-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
+                  Độ phóng đại: 1200X
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <span id="badge-view-mode" class="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                  Góc nhìn: Vi mô (Đầy đủ)
+                </span>
+              </div>
+            </div>
+
+            <!-- Interactive 2D Canvas Viewport -->
+            <div id="canvas-wrapper" class="w-full aspect-[4/3] sm:h-[400px] max-h-[420px] rounded-xl overflow-hidden relative bg-slate-950 border border-slate-800/80 shadow-inner flex items-center justify-center">
+              <canvas id="brown-canvas" class="w-full h-full cursor-crosshair block"></canvas>
+              
+              <div class="absolute bottom-2.5 left-3 text-[11px] font-mono text-slate-400/90 pointer-events-none bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800/80 flex items-center gap-2">
+                <span>FPS: <strong id="val-fps" class="text-cyan-400 font-bold">60</strong></span>
+                <span>•</span>
+                <span>Trạng thái: <strong id="val-sim-state" class="text-emerald-400 font-bold">Đang chạy</strong></span>
+              </div>
+
+              <div class="absolute top-2.5 right-3 text-[11px] font-mono text-amber-400 pointer-events-none bg-slate-950/80 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1.5">
+                <i class="fa-solid fa-crosshairs"></i>
+                <span>Nhấp chuột vào bình để đặt lại vị trí hạt</span>
+              </div>
+            </div>
+
+            <!-- Canvas Bottom Quick Control Strip -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/80 text-xs">
+              
+              <div class="flex items-center gap-2">
+                <button id="btn-play-pause" onclick="togglePlayPause()" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+                  <i id="icon-play-pause" class="fa-solid fa-pause"></i>
+                  <span id="text-play-pause">Tạm dừng</span>
+                </button>
+
+                <button onclick="resetSimulation()" class="px-3 py-2 rounded-xl glass-card text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1.5 transition-all">
+                  <i class="fa-solid fa-rotate-left"></i>
+                  <span>Đặt lại</span>
+                </button>
+
+                <button onclick="recenterPollen()" class="px-3 py-2 rounded-xl glass-card text-slate-300 hover:text-cyan-300 border border-slate-700 flex items-center gap-1.5 transition-all">
+                  <i class="fa-solid fa-location-crosshairs"></i>
+                  <span>Đưa về tâm</span>
+                </button>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none text-slate-300 font-semibold text-xs">
+                  <input type="checkbox" id="chk-show-trail" onchange="toggleTrailCheckbox(this.checked)" class="w-4 h-4 rounded accent-cyan-500 bg-slate-900 border-slate-700">
+                  <span>Vẽ vết quỹ đạo</span>
+                </label>
+
+                <button onclick="clearTrail()" class="px-2.5 py-1.5 rounded-lg glass-card text-slate-400 hover:text-white text-[11px] font-mono border border-slate-800">
+                  <i class="fa-solid fa-broom mr-1"></i>Xóa vết
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- RIGHT: EXPERIMENT PARAMETERS PANEL (5 Cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          
+          <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-cyan-500/30 shadow-xl flex flex-col gap-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-cyan-400"></i> Bảng Điều khiển Thí nghiệm
+              </h3>
+              <span class="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                TN-01-BROWN
+              </span>
+            </div>
+
+            <!-- Slider 1: Temperature T (Kelvin) -->
+            <div class="flex flex-col gap-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <label class="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-temperature-half text-amber-400"></i>
+                  <span>Nhiệt độ chất lỏng (T):</span>
+                </label>
+                <div class="font-mono text-xs">
+                  <span id="disp-temp-k" class="text-amber-400 font-bold text-sm">300 K</span>
+                  <span class="text-slate-400 ml-1">(<span id="disp-temp-c">27</span>°C)</span>
+                </div>
+              </div>
+              <input type="range" id="slider-temp" min="273" max="373" step="1" value="300" oninput="onTemperatureChange(this.value)" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>273 K (0°C - Nước đá)</span>
+                <span>323 K (50°C)</span>
+                <span>373 K (100°C - Nước sôi)</span>
+              </div>
+            </div>
+
+            <!-- Slider 2: Pollen Particle Radius (d) -->
+            <div class="flex flex-col gap-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <label class="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle-dot text-cyan-400"></i>
+                  <span>Kích thước hạt phấn hoa (d):</span>
+                </label>
+                <div class="font-mono text-xs">
+                  <span id="disp-pollen-size" class="text-cyan-400 font-bold text-sm">14 px</span>
+                  <span class="text-slate-400 ml-1">(Hạt vi mô)</span>
+                </div>
+              </div>
+              <input type="range" id="slider-pollen-size" min="6" max="32" step="1" value="14" oninput="onPollenSizeChange(this.value)" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>6 px (Rất nhỏ)</span>
+                <span>18 px</span>
+                <span>32 px (Hạt lớn)</span>
+              </div>
+            </div>
+
+            <!-- Slider 3: Water Molecules Density (N) -->
+            <div class="flex flex-col gap-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <label class="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-cubes-stacked text-indigo-400"></i>
+                  <span>Mật độ phân tử nước (N):</span>
+                </label>
+                <span id="disp-molecules-count" class="font-mono text-indigo-400 font-bold text-sm">120 hạt</span>
+              </div>
+              <input type="range" id="slider-molecules-count" min="40" max="220" step="10" value="120" oninput="onMoleculesCountChange(this.value)" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+              <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>40 (Mật độ loãng)</span>
+                <span>120 (Tiêu chuẩn)</span>
+                <span>220 (Mật độ đậm đặc)</span>
+              </div>
+            </div>
+
+            <!-- Toggle: Show/Hide Water Molecules Layer -->
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-droplet text-cyan-400 text-sm"></i>
+                <span class="text-xs font-semibold text-slate-200">Hiện lớp phân tử nước:</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="chk-show-molecules" checked onchange="toggleWaterMoleculesCheckbox(this.checked)" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+              </label>
+            </div>
+
+          </div>
+
+          <!-- Quick Observation Notes Card -->
+          <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl flex flex-col gap-2.5">
+            <div class="flex items-center gap-2 text-cyan-400 text-xs font-bold">
+              <i class="fa-solid fa-circle-question text-sm"></i>
+              <span>Vấn đề cần khám phá qua thí nghiệm:</span>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-2 leading-relaxed list-disc list-inside">
+              <li>Đường đi của hạt phấn hoa (vết vàng) có theo một quy luật hình học định sẵn nào không?</li>
+              <li>Khi điều chỉnh <strong class="text-cyan-300">Nhiệt độ (T)</strong>, yếu tố nào trong mô phỏng thay đổi trước tiên?</li>
+              <li>Khi <strong class="text-white">ẩn lớp nước</strong>, điều gì khiến hạt phấn hoa vẫn không thể đứng yên một chỗ?</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- PEDAGOGICAL EXPANSION TABS                                                -->
+    <!-- ========================================================================= -->
+    <section class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl">
+      
+     <!-- Tab Header Buttons (Đồng bộ chuẩn giao diện latent) -->
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button id="tab-btn-theory" disabled onclick="switchStep2Tab('theory')" class="px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60">
+          <i id="theory-tab-lock-icon" class="fa-solid fa-lock text-amber-400"></i>
+          <span>1. Đúc kết Kiến thức</span>
+          <span id="theory-tab-status-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Đang khóa</span>
+        </button>
+
+        <button id="tab-btn-quiz" disabled onclick="switchStep2Tab('quiz')" class="px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60">
+          <i id="quiz-tab-lock-icon" class="fa-solid fa-lock text-amber-400"></i>
+          <span>2. Bài kiểm tra Đánh giá (5 câu)</span>
+          <span id="quiz-tab-status-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Đang khóa</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Knowledge Summary -->
+      <div id="tab-content-theory" class="hidden mt-4 text-xs sm:text-sm text-slate-300 leading-relaxed flex-col gap-4">
+        <div id="theory-unlocked-view" class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col gap-2">
+            <h4 class="font-bold text-cyan-400 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-atom"></i> 1. Thí nghiệm lịch sử Robert Brown (1827)
+            </h4>
+            <p>
+              Năm 1827, Robert Brown quan sát các hạt phấn hoa lơ lửng trong nước dưới kính hiển vi phát hiện chúng chuyển động hỗn loạn không ngừng theo các đường gấp khúc ngẫu nhiên.
+            </p>
+            <p class="text-slate-400 text-xs">
+              Năm 1905, Albert Einstein dùng thuyết động học phân tử giải thích trọn vẹn, chứng minh thực tế sự tồn tại của nguyên tử, phân tử.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col gap-2">
+            <h4 class="font-bold text-amber-400 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-fire"></i> 2. Các Quy luật Động học Phân tử cốt lõi
+            </h4>
+            <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+              <li><strong class="text-amber-300">Nhiệt độ càng cao:</strong> Các phân tử nước chuyển động nhiệt càng nhanh, va chạm càng mạnh làm hạt phấn hoa đổi hướng dữ dội hơn.</li>
+              <li><strong class="text-cyan-300">Ý nghĩa then chốt:</strong> Chuyển động Brown là bằng chứng thực nghiệm khẳng định vật chất cấu tạo từ các phân tử luôn chuyển động hỗn loạn không ngừng.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end pt-2 border-t border-slate-800">
+          <button onclick="goToQuizModule()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer">
+            <span>Đã hiểu kiến thức • Làm bài kiểm tra (5 câu)</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Interactive Gamified 5-Question Quiz -->
+      <div id="tab-content-quiz" class="hidden mt-4 p-4 sm:p-5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-300 text-xs sm:text-sm flex flex-col gap-4">
+        
+        <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-700/60">
+          <div class="flex items-center gap-2 text-amber-400 font-bold text-sm sm:text-base">
+            <i class="fa-solid fa-graduation-cap text-lg"></i>
+            <span>Bài kiểm tra Đánh giá Năng lực</span>
+          </div>
+
+          <div id="quiz-header-badges" class="flex items-center gap-2 text-xs font-mono">
+            <div class="px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-slate-300">
+              <span class="text-slate-400">Thời gian:</span>
+              <strong id="quiz-timer-text" class="text-cyan-400 ml-1 font-bold">00:00</strong>
+            </div>
+            <div class="px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-slate-300">
+              <span class="text-slate-400">Điểm:</span>
+              <strong id="quiz-header-score" class="text-amber-300 font-bold ml-1">0 / 10 đ</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW A: LOADING SPINNER -->
+        <div id="quiz-loading-view" class="py-12 flex flex-col items-center justify-center">
+          <i class="fa-solid fa-spinner fa-spin text-3xl text-cyan-400"></i>
+        </div>
+
+        <!-- VIEW B: QUESTION STEP-BY-STEP CONTAINER -->
+        <div id="quiz-question-view" class="hidden flex flex-col gap-4 animate-fade-in">
+          <div class="flex items-center justify-between gap-2 text-xs font-mono">
+            <span class="text-cyan-300 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-question"></i>
+              <span>Câu hỏi <strong id="q-current-index" class="text-white">1</strong> / 5</span>
+            </span>
+            <div class="w-36 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div id="q-progress-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 20%;"></div>
+            </div>
+          </div>
+
+          <div class="p-4 sm:p-5 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col gap-3">
+            <h4 id="q-text-content" class="font-bold text-white text-sm sm:text-base leading-relaxed"></h4>
+            <div id="q-image-wrapper" class="hidden my-1">
+              <img id="q-image-el" src="" alt="Minh họa" class="max-h-48 rounded-lg border border-slate-700 object-contain mx-auto">
+            </div>
+            <div id="q-options-container" class="grid grid-cols-1 gap-2.5 mt-1 text-xs sm:text-sm"></div>
+            <div id="q-feedback-box" class="hidden p-3 rounded-lg border text-xs font-mono transition-all"></div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button id="btn-submit-single-q" onclick="submitCurrentSingleQuestion()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+              <span>Nộp câu trả lời & Tiếp tục</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW C: FINAL RESULT SUMMARY SCREEN -->
+        <div id="quiz-summary-view" class="hidden py-6 flex flex-col items-center justify-center text-center gap-4 animate-fade-in">
+          <div id="summary-trophy-icon" class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl text-amber-400 shadow-xl shadow-amber-500/10">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+
+          <div class="space-y-1">
+            <h3 class="text-lg sm:text-xl font-extrabold text-white">Tổng kết Bài kiểm tra Đánh giá</h3>
+            <p class="text-xs text-slate-400">Chủ đề: Chuyển động Brown &amp; Bản chất phân tử của chất</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 w-full max-w-sm py-1 font-mono text-xs">
+            <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center">
+              <span class="text-slate-400 text-[11px]">Số câu đúng</span>
+              <strong id="summary-correct-count" class="text-emerald-400 text-base mt-0.5 font-bold">5 / 5</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center">
+              <span class="text-slate-400 text-[11px]">Điểm tổng kết</span>
+              <strong id="summary-final-score" class="text-amber-300 text-base mt-0.5 font-bold">10 / 10 đ</strong>
+            </div>
+          </div>
+
+          <p id="summary-rating-text" class="text-xs text-slate-300 max-w-md leading-relaxed px-2">
+            Xuất sắc! Bạn đã nắm vững 100% bản chất Động học phân tử và chuyển động Brown.
+          </p>
+
+          <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="loadQuestionsFromSheet()" class="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition cursor-pointer">
+              <i class="fa-solid fa-rotate-right"></i> Làm lại đề mới
+            </button>
+            <button type="button" onclick="goToTheorySection()" class="px-5 py-2.5 rounded-xl glass-card text-slate-300 hover:text-white font-semibold text-xs transition cursor-pointer border border-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-book-open text-cyan-400"></i> Xem lại lý thuyết
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CHẾ ĐỘ GIÁO VIÊN                                                   -->
+  <!-- ========================================================================= -->
+  <div id="modal-teacher" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
+    <div class="glass-panel w-full max-w-2xl rounded-2xl p-5 sm:p-6 border border-amber-500/40 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+        <div class="flex items-center gap-2.5 text-amber-400">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 font-bold">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base sm:text-lg text-white">Chế độ Giáo viên • PhysVerse 12</h3>
+            <p class="text-[11px] text-slate-400 font-normal">Kế hoạch bài dạy & Biên soạn câu hỏi lên Google Sheets</p>
+          </div>
+        </div>
+        <button onclick="toggleTeacherModal()" class="text-slate-400 hover:text-white text-lg p-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- VIEW 1: AUTH LOGIN / PIN FORM -->
+      <div id="teacher-auth-view" class="flex flex-col gap-4 py-2">
+        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-slate-300 flex items-start gap-3">
+          <i class="fa-solid fa-shield-halved text-amber-400 text-base mt-0.5 shrink-0"></i>
+          <div>
+            <p class="font-semibold text-amber-300 mb-0.5">Xác thực quyền Giáo viên / Quản trị viên</p>
+            <p class="text-slate-300 leading-relaxed">
+              Vui lòng nhập tài khoản hoặc mã PIN bảo mật để truy cập cổng Giáo viên và biên soạn ngân hàng câu hỏi.
+            </p>
+            <div class="mt-2 text-[11px] font-mono text-amber-200/80 bg-slate-900/80 px-2.5 py-1 rounded border border-amber-500/20 w-fit">
+              Tài khoản mặc định: <strong class="text-amber-300">admin</strong> / Mật khẩu: <strong class="text-amber-300">Vatli12@</strong> (hoặc PIN: <strong class="text-amber-300">123456</strong>)
+            </div>
+          </div>
+        </div>
+
+        <form id="form-teacher-login" onsubmit="handleTeacherLogin(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Tài khoản / Mã PIN giáo viên:</label>
+            <input type="text" id="teacher-login-user" required placeholder="Nhập 'admin' hoặc mã PIN (123456)..." class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-amber-400 focus:outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Mật khẩu bảo mật:</label>
+            <input type="password" id="teacher-login-pass" placeholder="Nhập mật khẩu 'Vatli12@' (nếu dùng mã PIN có thể để trống)..." class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-amber-400 focus:outline-none">
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button type="button" onclick="toggleTeacherModal()" class="px-4 py-2 rounded-xl glass-card text-slate-300 hover:text-white text-xs">
+              Hủy bỏ
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg transition-all">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Đăng nhập Cổng Giáo viên
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- VIEW 2: TEACHER DASHBOARD PORTAL -->
+      <div id="teacher-portal-view" class="hidden flex flex-col gap-4 text-xs sm:text-sm text-slate-300">
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-slate-700">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+            <span class="text-xs font-semibold text-slate-200">Đã đăng nhập: <strong class="text-amber-300">Giáo viên Vật lí 12</strong></span>
+          </div>
+          <button onclick="handleTeacherLogout()" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-medium transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 border-b border-slate-700/60 pb-2">
+          <button id="teacher-tab-btn-plan" onclick="switchTeacherTab('plan')" class="px-3.5 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-book-open"></i> Kế hoạch bài dạy
+          </button>
+          <button id="teacher-tab-btn-addq" onclick="switchTeacherTab('addq')" class="px-3.5 py-1.5 rounded-lg glass-card text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-plus-circle text-amber-400"></i> Thêm câu hỏi trắc nghiệm mới
+          </button>
+        </div>
+
+        <!-- Teacher Tab 1: Lesson Plan -->
+        <div id="teacher-tab-plan" class="space-y-3.5">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+              <span>Trạng thái: <strong id="plan-edit-status" class="text-emerald-400">Đang hiển thị</strong></span>
+            </span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btn-edit-plan" onclick="toggleEditLessonPlan()" class="px-3 py-1 rounded-lg glass-card text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+                <i class="fa-solid fa-pen"></i> Chỉnh sửa
+              </button>
+              <button type="button" id="btn-save-plan" onclick="saveLessonPlanData()" class="hidden px-3.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold items-center gap-1.5 shadow-md transition-all cursor-pointer">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-indigo-300 text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-file-powerpoint text-amber-400"></i>
+                <span>Link nhúng Slide bài giảng (Google Slides / OneDrive / Canva):</span>
+              </label>
+              <button type="button" onclick="toggleSplitTeachingMode()" class="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer">
+                <i class="fa-solid fa-chalkboard-user"></i> Bật Bàn Giảng Dạy (Slide & 3D)
+              </button>
+            </div>
+            <input type="url" id="input-slide-url" disabled placeholder="Dán link iframe hoặc link chia sẻ slide vào đây (bấm 'Chỉnh sửa' để nhập)..." class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:border-indigo-400 focus:outline-none disabled:opacity-60">
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1.5">
+            <h4 class="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-bullseye"></i> Mục tiêu sư phạm bài học (Chuẩn SGK Vật lí 12):
+            </h4>
+            <div id="plan-objectives-view" class="text-xs text-slate-300 space-y-1 leading-relaxed">
+              <ul class="list-disc list-inside space-y-1">
+                <li>Mô tả được chuyển động Brown và giải thích được nguyên nhân gây ra chuyển động này.</li>
+                <li>Nêu được các nội dung cơ bản của mô hình động học phân tử chất khí và chất lỏng.</li>
+                <li>Vận dụng giải thích mối liên hệ giữa nhiệt độ và chuyển động nhiệt hỗn loạn của phân tử.</li>
+              </ul>
+            </div>
+            <textarea id="plan-objectives-edit" rows="3" class="hidden w-full p-2.5 rounded-lg bg-slate-950 border border-amber-500/40 text-slate-200 text-xs focus:outline-none font-sans leading-relaxed"></textarea>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col gap-1.5 shadow-lg">
+            <h4 class="font-bold text-cyan-300 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-lightbulb text-cyan-400"></i> Gợi ý câu hỏi sư phạm khi trình chiếu trên lớp:
+            </h4>
+            <div id="plan-questions-view" class="text-xs text-slate-300 space-y-1.5 leading-relaxed font-sans">
+              <ol class="list-decimal list-inside space-y-1.5">
+                <li><em>"Khi thầy/cô tăng nhiệt độ từ 273K lên 373K, các em nhận thấy vận tốc phân tử nước và tần số đổi hướng của hạt phấn hoa thay đổi như thế nào?"</em></li>
+                <li><em>"Tắt lớp phân tử nước (góc nhìn vĩ mô) và hỏi học sinh nguyên nhân đằng sau sự dịch chuyển kì lạ của hạt phấn hoa."</em></li>
+              </ol>
+            </div>
+            <textarea id="plan-questions-edit" rows="3" class="hidden w-full p-2.5 rounded-lg bg-slate-950 border border-cyan-500/40 text-slate-200 text-xs focus:outline-none font-sans leading-relaxed"></textarea>
+          </div>
+        </div>
+
+        <!-- Teacher Tab 2: Question Creator Form -->
+        <div id="teacher-tab-addq" class="hidden space-y-3">
+          <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-200">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            Câu hỏi thêm mới sẽ được gửi trực tiếp tới Google Sheets và đồng bộ ngay vào ngân hàng đề thi.
+          </div>
+
+          <form id="form-add-question" onsubmit="handleAddNewQuestion(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">
+                Nội dung câu hỏi (Đề bài) <span class="text-rose-400">*</span>:
+              </label>
+              <textarea id="new-q-text" rows="2" required placeholder="Nhập nội dung câu hỏi trắc nghiệm..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">
+                Link ảnh minh họa (URL, tùy chọn):
+              </label>
+              <input type="url" id="new-q-image" placeholder="https://example.com/image.png (nếu có)" class="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Đáp án A -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-cyan-400">Phương án A:</span>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
+                    <input type="radio" name="new_q_correct" value="A" required class="accent-cyan-400">
+                    <span class="text-emerald-300 font-semibold">Đúng</span>
+                  </label>
+                </div>
+                <input type="text" id="new-q-opt-A" required placeholder="Nhập nội dung lựa chọn A..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none">
+                <input type="url" id="new-q-img-A" placeholder="Link ảnh đáp án A (nếu có)..." class="w-full px-2.5 py-1 rounded bg-slate-950/80 border border-slate-800 text-cyan-300 text-[11px] font-mono focus:border-cyan-400 focus:outline-none">
+              </div>
+
+              <!-- Đáp án B -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-cyan-400">Phương án B:</span>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
+                    <input type="radio" name="new_q_correct" value="B" class="accent-cyan-400">
+                    <span class="text-emerald-300 font-semibold">Đúng</span>
+                  </label>
+                </div>
+                <input type="text" id="new-q-opt-B" required placeholder="Nhập nội dung lựa chọn B..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none">
+                <input type="url" id="new-q-img-B" placeholder="Link ảnh đáp án B (nếu có)..." class="w-full px-2.5 py-1 rounded bg-slate-950/80 border border-slate-800 text-cyan-300 text-[11px] font-mono focus:border-cyan-400 focus:outline-none">
+              </div>
+
+              <!-- Đáp án C -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-cyan-400">Phương án C:</span>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
+                    <input type="radio" name="new_q_correct" value="C" class="accent-cyan-400">
+                    <span class="text-emerald-300 font-semibold">Đúng</span>
+                  </label>
+                </div>
+                <input type="text" id="new-q-opt-C" required placeholder="Nhập nội dung lựa chọn C..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none">
+                <input type="url" id="new-q-img-C" placeholder="Link ảnh đáp án C (nếu có)..." class="w-full px-2.5 py-1 rounded bg-slate-950/80 border border-slate-800 text-cyan-300 text-[11px] font-mono focus:border-cyan-400 focus:outline-none">
+              </div>
+
+              <!-- Đáp án D -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-cyan-400">Phương án D:</span>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
+                    <input type="radio" name="new_q_correct" value="D" class="accent-cyan-400">
+                    <span class="text-emerald-300 font-semibold">Đúng</span>
+                  </label>
+                </div>
+                <input type="text" id="new-q-opt-D" required placeholder="Nhập nội dung lựa chọn D..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none">
+                <input type="url" id="new-q-img-D" placeholder="Link ảnh đáp án D (nếu có)..." class="w-full px-2.5 py-1 rounded bg-slate-950/80 border border-slate-800 text-cyan-300 text-[11px] font-mono focus:border-cyan-400 focus:outline-none">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">
+                Lời giải thích chi tiết:
+              </label>
+              <textarea id="new-q-explain" rows="2" placeholder="Giải thích cơ sở lí thuyết..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-cyan-400 focus:outline-none font-mono"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+              <button type="reset" class="px-3.5 py-2 rounded-xl glass-card text-xs text-slate-300 hover:text-white">
+                Làm mới
+              </button>
+              <button type="submit" id="btn-save-new-q" class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg transition-all">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng bộ lên Google Sheet
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- BÀN GIẢNG DẠY ĐA NĂNG (100% SLIDE / 50:50 / 100% MÔ PHỎNG)               -->
+  <!-- ========================================================================= -->
+  <div id="split-teaching-view" class="fixed inset-0 z-[120] bg-black hidden flex-col w-screen h-screen overflow-hidden select-none">
+    
+    <!-- THANH ĐIỀU KHIỂN NỔI TỰ ĐỘNG TRƯỢT XUỐNG KHI HOVER -->
+    <div id="teaching-floating-bar" class="absolute top-0 left-0 right-0 z-50 h-12 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 flex items-center justify-between transition-all duration-300 transform -translate-y-9 hover:translate-y-0 opacity-70 hover:opacity-100 shadow-2xl">
+      <div class="flex items-center gap-2 text-xs font-bold text-amber-300">
+        <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
+        <span class="hidden sm:inline">Bàn Giảng Dạy • Chuyển Động Brown</span>
+      </div>
+
+      <!-- BỘ 3 NÚT CHUYỂN CHẾ ĐỘ 1 CHẠM -->
+      <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 gap-1 text-xs">
+        <button type="button" id="btn-mode-slide" onclick="setTeachingLayout('slide')" class="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-file-powerpoint"></i> 1. Chỉ Slide (100%)
+        </button>
+        <button type="button" id="btn-mode-split" onclick="setTeachingLayout('split')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-table-columns"></i> 2. Song song (50:50)
+        </button>
+        <button type="button" id="btn-mode-lab" onclick="setTeachingLayout('lab')" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-cube"></i> 3. Chỉ Thí nghiệm (100%)
+        </button>
+      </div>
+
+      <!-- NÚT F11 & THOÁT -->
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="toggleSplitFullscreen()" title="Toàn màn hình F11" class="px-2.5 py-1 rounded-lg glass-card text-xs text-slate-300 hover:text-white border border-slate-700 cursor-pointer">
+          <i class="fa-solid fa-expand"></i> F11
+        </button>
+        <button type="button" onclick="toggleSplitTeachingMode()" class="px-3 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/40 text-xs font-semibold border border-rose-500/40 cursor-pointer">
+          <i class="fa-solid fa-xmark mr-1"></i> Thoát
+        </button>
+      </div>
+    </div>
+
+    <!-- KHUNG HIỂN THỊ NỘI DUNG CHÍNH (KHÓA CUỘN 100VH) -->
+    <div id="teaching-stage-container" class="w-full h-full p-0 bg-black grid grid-cols-1 gap-0 overflow-hidden">
+      
+      <!-- Cột Trái: Slide PowerPoint Tràn Viền -->
+      <div id="stage-slide-wrapper" class="w-full h-full bg-black overflow-hidden relative flex items-center justify-center">
+        <iframe 
+          id="split-slide-iframe" 
+          src="" 
+          class="w-full h-full border-0 block absolute inset-0" 
+          allowfullscreen="true" 
+          mozallowfullscreen="true" 
+          webkitallowfullscreen="true">
+        </iframe>
+      </div>
+
+      <!-- Cột Phải: Không gian Mô Phỏng 3D Brown & Bảng Điều Khiển -->
+      <div id="split-lab-host" class="w-full h-full hidden overflow-hidden p-2.5 sm:p-3 bg-slate-950 border-l border-slate-800 flex-col gap-2">
+        
+        <!-- THANH TIẾN TRÌNH SƯ PHẠM MINI TRÊN ĐỈNH -->
+        <div id="mini-mission-ribbon" class="w-full px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono shrink-0 shadow-md">
+          <div class="flex items-center gap-2">
+            <span class="text-cyan-400 font-bold flex items-center gap-1">
+              <i class="fa-solid fa-chalkboard-user"></i>
+              <span class="hidden sm:inline">Tiến trình bài học:</span>
+            </span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span id="ribbon-m1" class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1">
+                1. Vết Zic-zac: <strong id="ribbon-m1-val">0.0s</strong>
+              </span>
+              <span id="ribbon-m2" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[11px] font-semibold flex items-center gap-1">
+                2. Nhiệt độ cao: <strong id="ribbon-m2-val">300K</strong>
+              </span>
+              <span id="ribbon-m3" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[11px] font-semibold flex items-center gap-1">
+                3. Góc nhìn 1827: <strong id="ribbon-m3-val">Hiện nước</strong>
+              </span>
+              <button id="ribbon-m4" onclick="confirmMission4()" disabled class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700 text-[11px] font-bold cursor-not-allowed transition flex items-center gap-1">
+                <i class="fa-solid fa-key text-[10px]"></i>
+                <span id="ribbon-m4-val">4. Giải mã</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- NÚT MỞ NHANH ĐÚC KẾT LÝ THUYẾT TRONG F11 -->
+          <button type="button" onclick="openTeachingTheoryModal()" class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm">
+            <i class="fa-solid fa-book-open text-cyan-400"></i>
+            <span>Đúc kết kiến thức</span>
+          </button>
+        </div>
+
+        <!-- VÙNG CHỨA WORKSPACE MÔ PHỎNG -->
+        <div id="split-lab-content" class="w-full flex-1 overflow-hidden"></div>
+
+        <!-- MODAL ĐÚC KẾT KIẾN THỨC BÊN TRONG BÀN GIẢNG DẠY (F11) -->
+        <div id="modal-teaching-theory" class="fixed inset-0 z-[250] bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4">
+          <div class="glass-panel w-full max-w-4xl rounded-2xl p-5 border border-cyan-500/40 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2.5 text-cyan-400">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-base font-bold">
+                  <i class="fa-solid fa-book-open"></i>
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-white text-base sm:text-lg">Đúc kết Kiến thức • Chuyển động Brown</h3>
+                  <p class="text-[11px] text-slate-400">Thuyết động học phân tử & Bản chất chuyển động nhiệt</p>
+                </div>
+              </div>
+              <button type="button" onclick="closeTeachingTheoryModal()" class="text-slate-400 hover:text-white text-lg p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- 2 Cột kiến thức chuẩn -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/30 flex flex-col gap-2">
+                <h4 class="font-bold text-cyan-300 text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-atom"></i> 1. Thí nghiệm lịch sử (1827)
+                </h4>
+                <p class="text-slate-300 leading-relaxed">
+                  Robert Brown phát hiện các hạt phấn hoa trong nước chuyển động zic-zac hỗn loạn không ngừng. Đến năm 1905, Albert Einstein giải thích nguyên nhân do các phân tử nước chuyển động nhiệt va đập bất đối xứng vào hạt.
+                </p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 flex flex-col gap-2">
+                <h4 class="font-bold text-amber-300 text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-fire"></i> 2. Quy luật Động học Phân tử
+                </h4>
+                <ul class="list-disc list-inside space-y-1.5 text-slate-300">
+                  <li><strong class="text-amber-300">Nhiệt độ càng cao:</strong> Phân tử chuyển động nhiệt càng nhanh, va chạm càng mạnh làm hạt đổi hướng dữ dội hơn.</li>
+                  <li><strong class="text-cyan-300">Ý nghĩa:</strong> Bằng chứng thực nghiệm khẳng định vật chất cấu tạo từ các phân tử luôn chuyển động hỗn loạn không ngừng.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end pt-2 border-t border-slate-800">
+              <button type="button" onclick="closeTeachingTheoryModal()" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs cursor-pointer transition">
+                ✕ Đóng cửa sổ lý thuyết
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT SIMULATION, MISSION ENGINE & GAMIFIED QUIZ                     -->
+  <!-- ========================================================================= -->
+  <script>
+    /* =========================================================================
+       1. GLOBAL CONSTANTS & GOOGLE APPS SCRIPT URL
+       ========================================================================= */
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5g0_1VWtmBV77iilw_0ESz6sZ07na9vgA97aG9HUZZmkpJI1wUYJLtLASKd_ajbOF/exec";
+
+    function checkIsTeacher() {
+      // 1. Kiểm tra session của học sinh trước
+      const sRole = sessionStorage.getItem('vl12_role');
+      if (sRole === 'student') return false;
+      if (sRole === 'teacher') return true;
+
+      // 2. Kiểm tra localStorage giáo viên
+      const lRole = localStorage.getItem('vl12_role');
+      if (lRole === 'teacher') return true;
+
+      // 3. Mặc định là học sinh
+      return false;
+    }
+
+    /* =========================================================================
+       2. SIMULATION STATE
+       ========================================================================= */
+    const state = {
+      // Physical parameters
+      temperatureK: 300,
+      pollenRadius: 14,
+      waterMoleculeCount: 120,
+      showWaterMolecules: true,
+      showTrail: false,
+      
+      // Canvas state
+      isPlaying: true,
+      canvasWidth: 600,
+      canvasHeight: 400,
+      lastTime: performance.now(),
+      fps: 60,
+      frameCount: 0,
+      lastFpsUpdate: performance.now(),
+
+      // Pollen particle object
+      pollen: {
+        x: 300,
+        y: 200,
+        vx: 0,
+        vy: 0,
+        radius: 14,
+        mass: 60,
+        trail: []
+      },
+
+      // Water molecules array
+      molecules: []
+    };
+
+    /* =========================================================================
+       3. MISSION PROGRESSION STATE
+       ========================================================================= */
+    const missionState = {
+      currentStep: 1,
+      completed: [false, false, false, false],
+      m1Elapsed: 0,
+      m2Elapsed: 0,
+      m3Completed: false,
+      m4Completed: false
+    };
+
+    /* =========================================================================
+       4. QUIZ STATE & LOCAL QUESTIONS FALLBACK
+       ========================================================================= */
+    const defaultQuestions = [
+      {
+        question: "Trong thí nghiệm Brown, nguyên nhân chính làm hạt phấn hoa chuyển động hỗn loạn không ngừng là do:",
+        imageUrl: "",
+        options: {
+          A: "Phấn hoa là sinh vật sống có khả năng tự bơi trong nước.",
+          B: "Dòng nước bên trong cốc luôn chuyển động xoáy liên tục.",
+          C: "Các phân tử nước chuyển động nhiệt hỗn loạn va chạm bất đối xứng vào hạt phấn hoa.",
+          D: "Lực hút tĩnh điện giữa các hạt phấn hoa trong dung dịch."
+        },
+        correct: "C",
+        explanation: "Các phân tử nước chuyển động nhiệt hỗn loạn không ngừng và liên tục va đập bất đối xứng vào hạt phấn hoa."
+      },
+      {
+        question: "Khi tăng nhiệt độ của chất lỏng từ 20°C lên 80°C, chuyển động của hạt phấn hoa thay đổi như thế nào?",
+        imageUrl: "",
+        options: {
+          A: "Chuyển động chậm dần và dừng hẳn do nước nở ra.",
+          B: "Chuyển động nhanh hơn, gấp khúc dữ dội hơn vì các phân tử nước chuyển động nhiệt nhanh hơn.",
+          C: "Chuyển động chuyển thành quỹ đạo tròn đều.",
+          D: "Không thay đổi vì hạt phấn hoa không chịu ảnh hưởng của nhiệt độ."
+        },
+        correct: "B",
+        explanation: "Khi tăng nhiệt độ, động năng tịnh tiến của phân tử nước tăng, khiến hạt phấn hoa bị va đập mạnh và đổi hướng dữ dội hơn."
+      },
+      {
+        question: "Nếu tắt hiển thị các phân tử nước (tái hiện góc nhìn kính hiển vi thế kỉ 19), ta quan sát thấy điều gì?",
+        imageUrl: "",
+        options: {
+          A: "Hạt phấn hoa đứng yên hoàn toàn.",
+          B: "Hạt phấn hoa tự chuyển động zic-zac ngẫu nhiên kì lạ dù không thấy vật nào va chạm vào nó.",
+          C: "Hạt phấn hoa chìm ngay xuống đáy bình.",
+          D: "Hạt phấn hoa phát sáng rực rỡ."
+        },
+        correct: "B",
+        explanation: "Robert Brown năm 1827 không thể nhìn thấy phân tử nước mà chỉ thấy hạt phấn hoa tự chuyển động zic-zac hỗn loạn không ngừng."
+      },
+      {
+        question: "Theo thuyết động học phân tử, các phân tử cấu tạo nên vật chất có đặc điểm nào sau đây?",
+        imageUrl: "",
+        options: {
+          A: "Chuyển động hỗn loạn không ngừng, chuyển động càng nhanh khi nhiệt độ càng cao.",
+          B: "Chỉ chuyển động khi có ngoại lực tác dụng liên tục.",
+          C: "Đứng yên khi vật ở trạng thái rắn hoặc lỏng.",
+          D: "Chỉ dao động quanh một vị trí cố định ở mọi nhiệt độ."
+        },
+        correct: "A",
+        explanation: "Các phân tử cấu tạo nên vật chất chuyển động hỗn loạn không ngừng. Nhiệt độ của vật càng cao thì các phân tử chuyển động càng nhanh."
+      },
+      {
+        question: "Ý nghĩa khoa học mang tính lịch sử quan trọng nhất của thí nghiệm chuyển động Brown là gì?",
+        imageUrl: "",
+        options: {
+          A: "Tìm ra cấu tạo của kính hiển vi quang học.",
+          B: "Là bằng chứng thực nghiệm trực tiếp chứng minh vật chất được cấu tạo từ các nguyên tử/phân tử luôn chuyển động hỗn loạn không ngừng.",
+          C: "Chứng minh nước là dung môi duy nhất trong tự nhiên.",
+          D: "Xác định vận tốc ánh sáng trong môi trường lỏng."
+        },
+        correct: "B",
+        explanation: "Chuyển động Brown là bằng chứng thực nghiệm trực quan khẳng định thuyết nguyên tử - phân tử và chuyển động nhiệt không ngừng của vật chất."
+      }
+    ];
+
+    let allQuestionsPool = [];
+    let quizQuestionsPool = [];
+    let currentQuizIndex = 0;
+    let quizSelectedAnswers = {};
+    let quizCorrectCount = 0;
+    let isCurrentQuestionSubmitted = false;
+    let quizTimerSeconds = 0;
+    let quizTimerInterval = null;
+
+    function startQuizTimer() {
+      if (quizTimerInterval) return;
+      quizTimerSeconds = 0;
+      quizTimerInterval = setInterval(() => {
+        quizTimerSeconds++;
+        const mins = String(Math.floor(quizTimerSeconds / 60)).padStart(2, '0');
+        const secs = String(quizTimerSeconds % 60).padStart(2, '0');
+        const timerEl = document.getElementById('quiz-timer-text');
+        if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopQuizTimer() {
+      if (quizTimerInterval) {
+        clearInterval(quizTimerInterval);
+        quizTimerInterval = null;
+      }
+    }
+
+    /* =========================================================================
+       5. CANVAS SETUP & PHYSICS ENGINE
+       ========================================================================= */
+    const canvas = document.getElementById('brown-canvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+
+    function resizeCanvas() {
+      if (!canvasWrapper || !canvas || !ctx) return;
+      const rect = canvasWrapper.getBoundingClientRect();
+      
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const oldW = state.canvasWidth || rect.width;
+      const oldH = state.canvasHeight || rect.height;
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      state.canvasWidth = rect.width;
+      state.canvasHeight = rect.height;
+
+      // Giữ hạt phấn hoa co giãn theo tỉ lệ màn hình
+      if (state.pollen) {
+        if (oldW > 0 && oldH > 0 && state.pollen.x > 0) {
+          state.pollen.x = (state.pollen.x / oldW) * rect.width;
+          state.pollen.y = (state.pollen.y / oldH) * rect.height;
+        } else {
+          state.pollen.x = rect.width / 2;
+          state.pollen.y = rect.height / 2;
+        }
+      }
+
+      // Tự động phân bố lại các phân tử nước
+      if (state.molecules && Array.isArray(state.molecules)) {
+        state.molecules.forEach(mol => {
+          if (oldW > 0 && oldH > 0 && mol.x > 0 && mol.y > 0 && mol.x <= oldW && mol.y <= oldH) {
+            mol.x = (mol.x / oldW) * rect.width;
+            mol.y = (mol.y / oldH) * rect.height;
+          } else {
+            mol.x = Math.random() * (rect.width - 20) + 10;
+            mol.y = Math.random() * (rect.height - 20) + 10;
+          }
+        });
+      }
+
+      if (state.pollen && state.pollen.trail) {
+        state.pollen.trail = [{ x: state.pollen.x, y: state.pollen.y }];
+      }
+    }
+
+    function initSimulation() {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Initialize Pollen
+      state.pollen.x = state.canvasWidth / 2;
+      state.pollen.y = state.canvasHeight / 2;
+      state.pollen.vx = 0;
+      state.pollen.vy = 0;
+      state.pollen.radius = state.pollenRadius;
+      state.pollen.mass = Math.max(16, state.pollenRadius * 2.2);
+      state.pollen.trail = [{ x: state.pollen.x, y: state.pollen.y }];
+
+      // Initialize Water Molecules
+      state.molecules = [];
+      const tempProgress = Math.max(0, Math.min(1, (state.temperatureK - 273) / 100));
+      const tempFactor = 1.0 + tempProgress * 1.8;
+      const baseSpeed = tempFactor * 150;
+
+      for (let i = 0; i < state.waterMoleculeCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = (0.75 + Math.random() * 0.5) * baseSpeed;
+        
+        let mx = Math.random() * (state.canvasWidth - 20) + 10;
+        let my = Math.random() * (state.canvasHeight - 20) + 10;
+
+        state.molecules.push({
+          x: mx,
+          y: my,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 3.5,
+          mass: 1
+        });
+      }
+    }
+
+    /* =========================================================================
+       6. MAIN ANIMATION LOOP
+       ========================================================================= */
+    function animate(currentTime) {
+      requestAnimationFrame(animate);
+
+      if (!canvas || canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+        return;
+      }
+      
+      if (!state.lastTime) state.lastTime = currentTime;
+      const dt = Math.min(0.05, Math.max(0.001, (currentTime - state.lastTime) / 1000));
+      state.lastTime = currentTime;
+
+      // FPS update
+      state.frameCount++;
+      if (currentTime - state.lastFpsUpdate >= 500) {
+        state.fps = Math.round((state.frameCount * 1000) / (currentTime - state.lastFpsUpdate));
+        state.frameCount = 0;
+        state.lastFpsUpdate = currentTime;
+        const fpsEl = document.getElementById('val-fps');
+        if (fpsEl) fpsEl.textContent = state.fps;
+      }
+
+      if (!state.isPlaying) {
+        drawScene();
+        return;
+      }
+
+      updatePhysics(dt);
+      updateMissionProgress(dt);
+      drawScene();
+    }
+
+    function updatePhysics(dt) {
+      const p = state.pollen;
+      const w = state.canvasWidth;
+      const h = state.canvasHeight;
+
+      if (isNaN(p.x) || isNaN(p.y) || isNaN(p.vx) || isNaN(p.vy)) {
+        p.x = w / 2;
+        p.y = h / 2;
+        p.vx = 0;
+        p.vy = 0;
+      }
+
+      const tempProgress = Math.max(0, Math.min(1, (state.temperatureK - 273) / 100));
+      const tempFactor = 1.0 + tempProgress * 1.8;
+      const targetSpeed = tempFactor * 95;
+
+      // Update Water Molecules & Collision with Pollen
+      for (let i = 0; i < state.molecules.length; i++) {
+        const m = state.molecules[i];
+
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+
+        if (m.x < m.radius) { m.x = m.radius; m.vx = Math.abs(m.vx); }
+        else if (m.x > w - m.radius) { m.x = w - m.radius; m.vx = -Math.abs(m.vx); }
+
+        if (m.y < m.radius) { m.y = m.radius; m.vy = Math.abs(m.vy); }
+        else if (m.y > h - m.radius) { m.y = h - m.radius; m.vy = -Math.abs(m.vy); }
+
+        const curSpd = Math.hypot(m.vx, m.vy);
+        if (curSpd > 0.1) {
+          const desired = (0.75 + (i % 5) * 0.12) * targetSpeed;
+          m.vx = (m.vx / curSpd) * (curSpd * 0.95 + desired * 0.05);
+          m.vy = (m.vy / curSpd) * (curSpd * 0.95 + desired * 0.05);
+        }
+
+        const dx = m.x - p.x;
+        const dy = m.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = p.radius + m.radius;
+
+        if (dist < minDist && dist > 0.001) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          const rvx = m.vx - p.vx;
+          const rvy = m.vy - p.vy;
+          const velAlongNormal = rvx * nx + rvy * ny;
+
+          if (velAlongNormal < 0) {
+            const restitution = 0.98;
+            const impulse = -(1 + restitution) * velAlongNormal / (1 / m.mass + 1 / p.mass);
+            const pollenKickMultiplier = 1.3 + tempProgress * 2.2;
+
+            m.vx += (impulse / m.mass) * nx;
+            m.vy += (impulse / m.mass) * ny;
+
+            p.vx -= (impulse / p.mass) * nx * pollenKickMultiplier;
+            p.vy -= (impulse / p.mass) * ny * pollenKickMultiplier;
+
+            const overlap = minDist - dist;
+            m.x += nx * overlap;
+            m.y += ny * overlap;
+          }
+        }
+      }
+
+      // Pollen Drag & Boundary Collision
+      const dragRate = 0.38 + (1 - tempProgress) * 0.32;
+      const dragFactor = Math.max(0.91, 1 - (dragRate * dt));
+      p.vx *= dragFactor;
+      p.vy *= dragFactor;
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx) * 0.85; }
+      else if (p.x > w - p.radius) { p.x = w - p.radius; p.vx = -Math.abs(p.vx) * 0.85; }
+
+      if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy) * 0.85; }
+      else if (p.y > h - p.radius) { p.y = h - p.radius; p.vy = -Math.abs(p.vy) * 0.85; }
+
+      if (state.showTrail) {
+        const lastPt = p.trail[p.trail.length - 1];
+        if (!lastPt || Math.hypot(p.x - lastPt.x, p.y - lastPt.y) > 1.5) {
+          p.trail.push({ x: p.x, y: p.y });
+          if (p.trail.length > 550) p.trail.shift();
+        }
+      }
+    }
+
+    function drawScene() {
+      if (!ctx) return;
+      const w = state.canvasWidth;
+      const h = state.canvasHeight;
+
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+      ctx.lineWidth = 1;
+      const step = 40;
+      for (let x = step; x < w; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = step; y < h; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw Trail
+      const p = state.pollen;
+      if (state.showTrail && p.trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(p.trail[0].x, p.trail[0].y);
+        for (let i = 1; i < p.trail.length; i++) {
+          ctx.lineTo(p.trail[i].x, p.trail[i].y);
+        }
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.65)';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+
+      // Draw Water Molecules
+      if (state.showWaterMolecules) {
+        for (let i = 0; i < state.molecules.length; i++) {
+          const m = state.molecules[i];
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+          ctx.strokeStyle = '#0284c7';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+
+      // Draw Pollen Grain
+      ctx.save();
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#d97706';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fill();
+    }
+
+    /* =========================================================================
+       7. INTERACTION HANDLERS & SIMULATION CONTROLS
+       ========================================================================= */
+    function togglePlayPause() {
+      state.isPlaying = !state.isPlaying;
+      const btn = document.getElementById('btn-play-pause');
+      const icon = document.getElementById('icon-play-pause');
+      const text = document.getElementById('text-play-pause');
+      const stateEl = document.getElementById('val-sim-state');
+
+      if (state.isPlaying) {
+        icon.className = 'fa-solid fa-pause';
+        text.textContent = 'Tạm dừng';
+        btn.className = 'px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all';
+        if (stateEl) {
+          stateEl.textContent = 'Đang chạy';
+          stateEl.className = 'text-emerald-400 font-bold';
+        }
+      } else {
+        icon.className = 'fa-solid fa-play';
+        text.textContent = 'Tiếp tục';
+        btn.className = 'px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all';
+        if (stateEl) {
+          stateEl.textContent = 'Đang tạm dừng';
+          stateEl.className = 'text-amber-400 font-bold';
+        }
+      }
+    }
+
+    function resetSimulation() {
+      state.pollen.x = state.canvasWidth / 2;
+      state.pollen.y = state.canvasHeight / 2;
+      state.pollen.vx = 0;
+      state.pollen.vy = 0;
+      state.pollen.trail = [{ x: state.pollen.x, y: state.pollen.y }];
+    }
+
+    function recenterPollen() {
+      state.pollen.x = state.canvasWidth / 2;
+      state.pollen.y = state.canvasHeight / 2;
+      state.pollen.vx = 0;
+      state.pollen.vy = 0;
+    }
+
+    function clearTrail() {
+      state.pollen.trail = [{ x: state.pollen.x, y: state.pollen.y }];
+    }
+
+    function toggleTrailCheckbox(checked) {
+      state.showTrail = checked;
+      if (!checked) clearTrail();
+    }
+
+    function toggleWaterMoleculesCheckbox(checked) {
+      state.showWaterMolecules = checked;
+      const badge = document.getElementById('badge-view-mode');
+      if (badge) {
+        if (checked) {
+          badge.textContent = 'Góc nhìn: Vi mô (Đầy đủ)';
+          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30';
+        } else {
+          badge.textContent = 'Góc nhìn: Vĩ mô (Robert Brown 1827)';
+          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        }
+      }
+
+      if (!checked && missionState.currentStep === 3) {
+        completeMission3();
+      }
+    }
+
+    function onTemperatureChange(val) {
+      state.temperatureK = parseInt(val, 10);
+      document.getElementById('disp-temp-k').textContent = `${state.temperatureK} K`;
+      document.getElementById('disp-temp-c').textContent = `${state.temperatureK - 273}`;
+      
+      const m2TempEl = document.getElementById('m2-temp-current');
+      if (m2TempEl) m2TempEl.textContent = `${state.temperatureK} K`;
+    }
+
+    function onPollenSizeChange(val) {
+      const radius = parseInt(val, 10);
+      state.pollenRadius = radius;
+      state.pollen.radius = radius;
+      state.pollen.mass = Math.max(16, radius * 2.2);
+      document.getElementById('disp-pollen-size').textContent = `${radius} px`;
+    }
+
+    function onMoleculesCountChange(val) {
+      const count = parseInt(val, 10);
+      state.waterMoleculeCount = count;
+      document.getElementById('disp-molecules-count').textContent = `${count} hạt`;
+      initSimulation();
+    }
+
+    if (canvas) {
+      canvas.addEventListener('pointerdown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        state.pollen.x = clickX;
+        state.pollen.y = clickY;
+        state.pollen.vx = 0;
+        state.pollen.vy = 0;
+        state.pollen.trail.push({ x: clickX, y: clickY });
+      });
+    }
+
+    /* =========================================================================
+       8. MISSION CONTROLLER
+       ========================================================================= */
+    function updateMissionProgress(dt) {
+      if (missionState.currentStep === 1 && state.isPlaying && state.showTrail) {
+        missionState.m1Elapsed += dt;
+        const progress = Math.min(5.0, missionState.m1Elapsed);
+        
+        const m1Text = document.getElementById('m1-timer-text');
+        const m1Bar = document.getElementById('m1-timer-bar');
+        if (m1Text) m1Text.textContent = `${progress.toFixed(1)}s / 5.0s`;
+        if (m1Bar) m1Bar.style.width = `${(progress / 5.0) * 100}%`;
+
+        if (missionState.m1Elapsed >= 5.0) {
+          completeMission1();
+        }
+      }
+
+      if (missionState.currentStep === 2 && state.isPlaying && state.temperatureK >= 350) {
+        missionState.m2Elapsed += dt;
+        const progress = Math.min(3.0, missionState.m2Elapsed);
+        
+        const m2Text = document.getElementById('m2-timer-text');
+        if (m2Text) m2Text.textContent = `${progress.toFixed(1)}s / 3.0s`;
+
+        if (missionState.m2Elapsed >= 3.0) {
+          completeMission2();
+        }
+      }
+    }
+
+    function completeMission1() {
+      missionState.completed[0] = true;
+      missionState.currentStep = 2;
+      updateMissionUI();
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Hoàn thành Nhiệm vụ 1!',
+        text: 'Đã quan sát rõ quỹ đạo zic-zac ngẫu nhiên của hạt phấn hoa.',
+        showConfirmButton: false,
+        timer: 2200,
+        background: '#0f172a',
+        color: '#f3f4f6'
+      });
+    }
+
+    function completeMission2() {
+      missionState.completed[1] = true;
+      missionState.currentStep = 3;
+      updateMissionUI();
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Hoàn thành Nhiệm vụ 2!',
+        text: 'Nhiệt độ càng cao, phân tử chuyển động càng nhanh làm hạt đổi hướng dữ dội hơn.',
+        showConfirmButton: false,
+        timer: 2200,
+        background: '#0f172a',
+        color: '#f3f4f6'
+      });
+    }
+
+    function quickHideMolecules() {
+      const chk = document.getElementById('chk-show-molecules');
+      if (chk) {
+        chk.checked = false;
+        toggleWaterMoleculesCheckbox(false);
+      }
+    }
+
+    function completeMission3() {
+      missionState.completed[2] = true;
+      missionState.currentStep = 4;
+      updateMissionUI();
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Hoàn thành Nhiệm vụ 3!',
+        text: 'Đã tái hiện góc nhìn kính hiển vi Robert Brown năm 1827.',
+        showConfirmButton: false,
+        timer: 2200,
+        background: '#0f172a',
+        color: '#f3f4f6'
+      });
+    }
+
+    function confirmMission4() {
+      // Tự động nhận diện xem có đang bật Bàn Giảng Dạy không để đặt lớp nổi (target)
+      const isSplitActive = document.fullscreenElement || 
+        (document.getElementById('split-teaching-view') && !document.getElementById('split-teaching-view').classList.contains('hidden'));
+      const swalTarget = isSplitActive ? document.getElementById('split-teaching-view') : 'body';
+
+      const options = [
+        { id: 'correct', text: 'Các phân tử nước chuyển động nhiệt hỗn loạn và va đập bất đối xứng vào hạt.' },
+        { id: 'wrong1', text: 'Hạt phấn hoa là vật thể sống có thể tự bơi trong nước.' },
+        { id: 'wrong2', text: 'Do lực hút tĩnh điện giữa thành bình và hạt phấn hoa.' }
+      ];
+
+      options.sort(() => Math.random() - 0.5);
+
+      const optionsHtml = options.map(opt => `
+        <label class="flex items-center gap-3 p-3 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-700/80 cursor-pointer transition-all">
+          <input type="radio" name="chk_m4_ans" value="${opt.id}" class="w-4 h-4 accent-cyan-400">
+          <span class="text-slate-200 font-normal leading-relaxed text-xs">${opt.text}</span>
+        </label>
+      `).join('');
+
+      Swal.fire({
+        target: swalTarget,
+        title: '🧠 Câu hỏi Kiểm chứng Bản chất',
+        html: `
+          <p class="text-xs text-slate-300 mb-2 text-left">Từ các quan sát thực nghiệm ở trên, theo em:</p>
+          <p class="text-sm font-bold text-cyan-300 mb-4 text-left">Nguyên nhân chính làm hạt phấn hoa chuyển động zic-zac hỗn loạn không ngừng là gì?</p>
+          <div class="space-y-2.5 text-xs text-left">
+            ${optionsHtml}
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận câu trả lời',
+        cancelButtonText: 'Quan sát lại',
+        confirmButtonColor: '#06b6d4',
+        cancelButtonColor: '#475569',
+        background: '#0f172a',
+        color: '#f3f4f6',
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="chk_m4_ans"]:checked');
+          if (!selected) {
+            Swal.showValidationMessage('Vui lòng chọn 1 phương án trước khi xác nhận!');
+            return false;
+          }
+          return selected.value;
+        }
+      }).then((res) => {
+        if (!res.isConfirmed) return;
+
+        if (res.value === 'correct') {
+          missionState.completed[3] = true;
+          missionState.currentStep = 5;
+          updateMissionUI();
+
+          const theoryLock = document.getElementById('theory-locked-view');
+          const theoryUnlock = document.getElementById('theory-unlocked-view');
+          if (theoryLock) theoryLock.classList.add('hidden');
+          if (theoryUnlock) theoryUnlock.classList.remove('hidden');
+
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+          Swal.fire({
+            target: swalTarget,
+            title: 'Chính xác tuyệt đối!',
+            html: `
+              <p class="text-xs text-slate-300 mb-2">Bạn đã giải thích đúng bản chất động học phân tử của chuyển động Brown.</p>
+              <p class="text-xs text-cyan-300 font-semibold">Hãy đọc lại phần Đúc kết kiến thức vừa mở bên dưới trước khi bước vào Bài kiểm tra nhé!</p>
+            `,
+            icon: 'success',
+            background: '#0f172a',
+            color: '#f3f4f6',
+            confirmButtonText: 'Xem Đúc kết kiến thức ➜',
+            confirmButtonColor: '#06b6d4'
+          }).then(() => {
+            if (isSplitActive && typeof openTeachingTheoryModal === 'function') {
+              openTeachingTheoryModal();
+            } else {
+              switchStep2Tab('theory');
+              setTimeout(() => {
+                const theoryTarget = document.getElementById('theory-unlocked-view') || 
+                                     document.getElementById('tab-content-theory');
+                if (theoryTarget) {
+                  const yOffset = -70;
+                  const y = theoryTarget.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                  window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+              }, 300);
+            }
+          });
+
+        } else {
+          Swal.fire({
+            target: swalTarget,
+            icon: 'error',
+            title: 'Chưa chính xác!',
+            text: 'Giải thích của bạn chưa đúng bản chất vật lí. Hãy đọc kĩ lại chuyển động của các phân tử nước xung quanh hạt phấn hoa và thử lại nhé!',
+            background: '#0f172a',
+            color: '#f3f4f6',
+            confirmButtonText: 'Chọn lại đáp án',
+            confirmButtonColor: '#f43f5e'
+          }).then(() => {
+            confirmMission4();
+          });
+        }
+      });
+    }
+
+    function updateMissionUI() {
+      const doneCount = missionState.completed.filter(Boolean).length;
+      const pct = (doneCount / 4) * 100;
+
+      const progText = document.getElementById('mission-progress-text');
+      const progBar = document.getElementById('mission-progress-bar');
+      if (progText) progText.textContent = `${doneCount}/4 (${pct}%)`;
+      if (progBar) progBar.style.width = `${pct}%`;
+
+      if (missionState.completed[0]) {
+        setCardDone('mission-card-1', 'mission-badge-1');
+      }
+
+      if (missionState.currentStep === 2) {
+        setCardActive('mission-card-2', 'mission-badge-2');
+      } else if (missionState.completed[1]) {
+        setCardDone('mission-card-2', 'mission-badge-2');
+      }
+
+      if (missionState.currentStep === 3) {
+        setCardActive('mission-card-3', 'mission-badge-3');
+        const btnM3 = document.getElementById('btn-quick-m3-hide');
+        if (btnM3) {
+          btnM3.disabled = false;
+          btnM3.className = 'px-2 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold text-[10px] cursor-pointer hover:bg-cyan-400';
+        }
+      } else if (missionState.completed[2]) {
+        setCardDone('mission-card-3', 'mission-badge-3');
+        const m3Text = document.getElementById('m3-state-text');
+        if (m3Text) m3Text.textContent = 'Đã tắt lớp nước';
+      }
+
+      if (missionState.currentStep === 4) {
+        setCardActive('mission-card-4', 'mission-badge-4');
+        const btnM4 = document.getElementById('btn-confirm-m4');
+        if (btnM4) {
+          btnM4.disabled = false;
+          btnM4.className = 'px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold flex items-center gap-1 hover:bg-emerald-400 cursor-pointer shadow-md';
+        }
+      } else if (missionState.completed[3]) {
+        setCardDone('mission-card-4', 'mission-badge-4');
+      }
+
+      if (doneCount === 4) {
+        const btnUnlock = document.getElementById('btn-unlock-quiz');
+        const iconUnlock = document.getElementById('btn-unlock-quiz-icon');
+        if (btnUnlock) {
+          btnUnlock.disabled = false;
+          btnUnlock.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 shadow-lg shadow-cyan-500/20 cursor-pointer';
+          if (iconUnlock) iconUnlock.className = 'fa-solid fa-lock-open text-slate-950';
+        }
+
+        // 1. Mở khóa Tab Đúc kết kiến thức
+        const tabBtnTheory = document.getElementById('tab-btn-theory');
+        const lockIconTheory = document.getElementById('theory-tab-lock-icon');
+        const badgeTheory = document.getElementById('theory-tab-status-badge');
+        if (tabBtnTheory) {
+          tabBtnTheory.disabled = false;
+          tabBtnTheory.classList.remove('cursor-not-allowed', 'opacity-60', 'text-slate-500');
+          tabBtnTheory.classList.add('cursor-pointer', 'text-slate-200');
+        }
+        if (lockIconTheory) {
+          lockIconTheory.className = 'fa-solid fa-unlock text-emerald-400';
+        }
+        if (badgeTheory) {
+          badgeTheory.textContent = 'Đã mở';
+          badgeTheory.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        }
+
+        // 2. Mở khóa Tab Bài kiểm tra
+        const tabBtnQuiz = document.getElementById('tab-btn-quiz');
+        const lockIconQuiz = document.getElementById('quiz-tab-lock-icon');
+        const badgeQuiz = document.getElementById('quiz-tab-status-badge');
+        if (tabBtnQuiz) {
+          tabBtnQuiz.disabled = false;
+          tabBtnQuiz.classList.remove('cursor-not-allowed', 'opacity-60', 'text-slate-500');
+          tabBtnQuiz.classList.add('cursor-pointer', 'text-slate-200');
+        }
+        if (lockIconQuiz) {
+          lockIconQuiz.className = 'fa-solid fa-unlock text-emerald-400';
+        }
+        if (badgeQuiz) {
+          badgeQuiz.textContent = 'Đã mở';
+          badgeQuiz.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        }
+      }
+
+      if (typeof updateTeachingRibbonUI === 'function') {
+        updateTeachingRibbonUI();
+      }
+    }
+
+    function setCardActive(cardId, badgeId) {
+      const card = document.getElementById(cardId);
+      const badge = document.getElementById(badgeId);
+      if (card) {
+        card.className = 'p-3.5 rounded-xl border transition-all duration-300 bg-slate-900/90 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] flex flex-col justify-between gap-3 opacity-100';
+      }
+      if (badge) {
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1';
+        badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[9px]"></i> Đang làm';
+      }
+    }
+
+    function setCardDone(cardId, badgeId) {
+      const card = document.getElementById(cardId);
+      const badge = document.getElementById(badgeId);
+      if (card) {
+        card.className = 'p-3.5 rounded-xl border transition-all duration-300 bg-slate-900/70 border-emerald-500/40 flex flex-col justify-between gap-3 opacity-90';
+      }
+      if (badge) {
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1';
+        badge.innerHTML = '<i class="fa-solid fa-check text-[9px]"></i> Xong';
+      }
+    }
+
+    function goToQuizModule() {
+      switchStep2Tab('quiz');
+      const quizCard = document.getElementById('tab-content-quiz');
+      if (quizCard) {
+        quizCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    /* =========================================================================
+       9. GAMIFIED 5-QUESTION ASSESSMENT LOGIC
+       ========================================================================= */
+    function switchStep2Tab(tabId) {
+      const isTeacher = checkIsTeacher();
+      const allMissionsDone = missionState.completed.every(Boolean);
+
+      // Chặn học sinh mở khi chưa hoàn thành 4 nhiệm vụ (Giáo viên được mở tự do)
+      if (!isTeacher && !allMissionsDone) {
+        Swal.fire({
+          icon: 'warning',
+          title: tabId === 'theory' ? 'Đúc kết kiến thức đang khóa!' : 'Bài kiểm tra đang khóa!',
+          text: 'Em cần hoàn thành lần lượt đủ 4 nhiệm vụ khám phá phía trên để mở khóa phần này!',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          confirmButtonColor: '#06b6d4'
+        });
+        return;
+      }
+
+      const tabs = ['theory', 'quiz'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-content-${t}`);
+        if (!btn || !content) return;
+
+        if (t === tabId) {
+          btn.className = 'px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 shadow-md shadow-cyan-500/20 cursor-pointer';
+          content.classList.remove('hidden');
+        } else {
+          btn.className = (allMissionsDone || isTeacher)
+            ? 'px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all bg-slate-800 text-slate-300 hover:text-white border border-slate-700 cursor-pointer'
+            : 'px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60';
+          content.classList.add('hidden');
+        }
+      });
+
+      if (tabId === 'quiz') {
+        if (!isTeacher) {
+          startQuizTimer();
+        }
+        if (quizQuestionsPool.length === 0) {
+          loadQuestionsFromSheet();
+        } else {
+          renderCurrentQuestion();
+        }
+      }
+    }
+
+    async function loadQuestionsFromSheet() {
+      const loadingView = document.getElementById('quiz-loading-view');
+      const qView = document.getElementById('quiz-question-view');
+      const sumView = document.getElementById('quiz-summary-view');
+
+      if (loadingView) loadingView.classList.remove('hidden');
+      if (qView) qView.classList.add('hidden');
+      if (sumView) sumView.classList.add('hidden');
+
+      let questions = [];
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getQuestions', topic: 'BROWN' })
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          if (result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+            questions = result.data.map(q => ({
+              question: q.question,
+              imageUrl: q.imageQ || q.imageUrl || '',
+              options: {
+                A: q.a || q.optA || '',
+                B: q.b || q.optB || '',
+                C: q.c || q.optC || '',
+                D: q.d || q.optD || ''
+              },
+              images: {
+                A: q.imageA || '',
+                B: q.imageB || '',
+                C: q.imageC || '',
+                D: q.imageD || ''
+              },
+              correct: (q.correct || 'A').toUpperCase().trim(),
+              explanation: q.explain || q.explanation || `Đáp án đúng là ${q.correct}`
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('Fallback to local default questions:', err);
+      }
+
+      if (questions.length === 0) {
+        questions = [...defaultQuestions];
+      }
+
+      allQuestionsPool = [...questions];
+
+      const shuffled = [...questions].sort(() => 0.5 - Math.random());
+      quizQuestionsPool = shuffled.slice(0, 5);
+      currentQuizIndex = 0;
+      quizSelectedAnswers = {};
+      quizCorrectCount = 0;
+      isCurrentQuestionSubmitted = false;
+      quizTimerSeconds = 0;
+
+      const scoreEl = document.getElementById('quiz-header-score');
+      if (scoreEl) scoreEl.textContent = '0 / 10 đ';
+
+      if (loadingView) loadingView.classList.add('hidden');
+      if (qView) qView.classList.remove('hidden');
+
+      renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+      const qView = document.getElementById('quiz-question-view');
+      const headerBadges = document.getElementById('quiz-header-badges');
+      const isTeacher = checkIsTeacher();
+
+      if (isTeacher) {
+        if (headerBadges) headerBadges.classList.add('hidden');
+
+        const listQuestions = (typeof allQuestionsPool !== 'undefined' && allQuestionsPool.length > 0) 
+          ? allQuestionsPool 
+          : (typeof defaultQuestions !== 'undefined' ? defaultQuestions : quizQuestionsPool);
+
+        qView.innerHTML = `
+          <div class="flex items-center justify-between pb-2 border-b border-slate-700/60 text-xs font-mono">
+            <span class="text-amber-300 font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check"></i>
+              <span>Ngân hàng câu hỏi (${listQuestions.length} câu)</span>
+            </span>
+            <button onclick="loadQuestionsFromSheet()" class="px-2.5 py-1 rounded-lg glass-card text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1.5 transition-all text-[11px] cursor-pointer">
+              <i class="fa-solid fa-rotate-right text-cyan-400"></i> Nạp lại từ Sheets
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-3.5 max-h-[65vh] overflow-y-auto custom-scrollbar pr-1">
+            ${listQuestions.map((q, idx) => {
+              const qNum = idx + 1;
+              const optionCards = ['A', 'B', 'C', 'D'].map(optKey => {
+                const optText = q.options ? (q.options[optKey] || '') : '';
+                const optImg = q.images ? (q.images[optKey] || '') : '';
+                const hasOptImg = optImg && optImg.trim().length > 8;
+                const isCorrect = optKey === q.correct;
+                
+                return `
+                  <div class="p-2.5 rounded-xl ${isCorrect ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-100 font-semibold' : 'bg-slate-900/60 border border-slate-800 text-slate-400 opacity-80'} flex flex-col gap-2 text-xs">
+                    <div class="flex items-start gap-2">
+                      <div class="w-4 h-4 rounded-full ${isCorrect ? 'bg-emerald-500 text-slate-950 font-bold' : 'border border-slate-600 text-slate-400'} flex items-center justify-center text-[10px] shrink-0 mt-0.5">${optKey}</div>
+                      <div class="leading-relaxed font-sans">${optText}</div>
+                    </div>
+                    ${hasOptImg ? `<div class="mt-1 flex justify-center"><img src="${optImg.trim()}" class="max-h-24 w-auto rounded border border-slate-700 object-contain"></div>` : ''}
+                  </div>
+                `;
+              }).join('');
+
+              const hasImg = q.imageUrl && String(q.imageUrl).trim().length > 8 && (q.imageUrl.startsWith('http') || q.imageUrl.startsWith('data:image'));
+              const imgHtml = hasImg ? `
+                <div class="my-2.5 flex justify-center items-center w-full">
+                  <div class="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-md max-w-md">
+                    <img src="${q.imageUrl.trim()}" alt="Minh họa" class="max-h-48 w-auto rounded-lg object-contain mx-auto block">
+                  </div>
+                </div>
+              ` : '';
+
+              return `
+                <div class="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700 flex flex-col gap-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="text-xs font-bold text-white"><span class="text-cyan-400 font-mono mr-1">Câu ${qNum}:</span>${q.question}</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">Đáp án: ${q.correct}</span>
+                  </div>
+                  ${imgHtml}
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">${optionCards}</div>
+                  <div class="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80"><strong class="text-amber-300">Giải thích:</strong> ${q.explanation || ''}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      if (headerBadges) headerBadges.classList.remove('hidden');
+
+      if (currentQuizIndex >= 5) {
+        showFinalQuizSummary();
+        return;
+      }
+
+      isCurrentQuestionSubmitted = false;
+      const q = quizQuestionsPool[currentQuizIndex];
+      const qNum = currentQuizIndex + 1;
+
+      qView.innerHTML = `
+        <div class="flex items-center justify-between gap-2 text-xs font-mono">
+          <span class="text-cyan-300 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Câu hỏi <strong id="q-current-index" class="text-white">${qNum}</strong> / 5</span>
+          </span>
+          <div class="w-36 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="q-progress-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: ${(qNum / 5) * 100}%;"></div>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-5 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col gap-3">
+          <h4 id="q-text-content" class="font-bold text-white text-sm sm:text-base leading-relaxed">
+            <span class="text-cyan-400 mr-1.5 font-mono">Câu ${qNum}:</span> ${q.question}
+          </h4>
+
+          <div id="q-image-wrapper" class="hidden my-3 flex justify-center items-center w-full">
+            <div class="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-md max-w-md">
+              <img id="q-image-el" src="" alt="Minh họa" class="max-h-52 w-auto rounded-lg object-contain mx-auto block">
+            </div>
+          </div>
+
+          <div id="q-options-container" class="grid grid-cols-1 gap-2.5 mt-1 text-xs sm:text-sm"></div>
+
+          <div id="q-feedback-box" class="hidden p-3 rounded-lg border text-xs font-mono transition-all"></div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button id="btn-submit-single-q" onclick="submitCurrentSingleQuestion()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer">
+            <span>Nộp câu trả lời & Tiếp tục</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      `;
+
+      const imgWrap = document.getElementById('q-image-wrapper');
+      const imgEl = document.getElementById('q-image-el');
+      if (q.imageUrl && String(q.imageUrl).trim().length > 8 && (q.imageUrl.startsWith('http') || q.imageUrl.startsWith('data:image'))) {
+        imgEl.src = q.imageUrl.trim();
+        imgWrap.classList.remove('hidden');
+      } else {
+        imgWrap.classList.add('hidden');
+      }
+
+      const optContainer = document.getElementById('q-options-container');
+      optContainer.innerHTML = ['A', 'B', 'C', 'D'].map(opt => {
+        const optText = q.options[opt] || '';
+        const optImg = q.images ? (q.images[opt] || '') : '';
+        const hasOptImg = optImg && optImg.trim().length > 8;
+
+        return `
+          <label id="opt-label-${opt}" class="flex flex-col gap-2 p-3 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 cursor-pointer border border-slate-700/80 transition-all select-none">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="current_quiz_opt" value="${opt}" onchange="selectQuizOption('${opt}')" class="w-4 h-4 accent-cyan-400">
+              <span class="text-slate-200"><strong>${opt}.</strong> ${optText}</span>
+            </div>
+            ${hasOptImg ? `<div class="ml-7 my-1"><img src="${optImg.trim()}" class="max-h-28 w-auto rounded-lg border border-slate-700 object-contain"></div>` : ''}
+          </label>
+        `;
+      }).join('');
+    }
+
+    function selectQuizOption(opt) {
+      if (isCurrentQuestionSubmitted) return;
+      quizSelectedAnswers[currentQuizIndex] = opt;
+    }
+
+    function submitCurrentSingleQuestion() {
+      const q = quizQuestionsPool[currentQuizIndex];
+      const selected = quizSelectedAnswers[currentQuizIndex];
+
+      if (!isCurrentQuestionSubmitted) {
+        if (!selected) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Chưa chọn đáp án',
+            text: 'Vui lòng chọn 1 phương án A, B, C hoặc D trước khi nộp câu trả lời!',
+            background: '#0f172a',
+            color: '#f3f4f6',
+            confirmButtonColor: '#0ea5e9'
+          });
+          return;
+        }
+
+        isCurrentQuestionSubmitted = true;
+        const isCorrect = (selected === q.correct);
+        if (isCorrect) quizCorrectCount++;
+
+        const currentPoints = quizCorrectCount * 2;
+        document.getElementById('quiz-header-score').textContent = `${currentPoints} / 10 đ`;
+
+        ['A', 'B', 'C', 'D'].forEach(opt => {
+          const lbl = document.getElementById(`opt-label-${opt}`);
+          if (!lbl) return;
+
+          if (opt === q.correct) {
+            lbl.className = 'flex items-center gap-3 p-3 rounded-xl bg-emerald-950/40 border-2 border-emerald-500 text-emerald-200';
+          } else if (opt === selected && !isCorrect) {
+            lbl.className = 'flex items-center gap-3 p-3 rounded-xl bg-rose-950/40 border-2 border-rose-500 text-rose-200';
+          } else {
+            lbl.className = 'flex items-center gap-3 p-3 rounded-xl bg-slate-900/40 border border-slate-800 opacity-60';
+          }
+        });
+
+        const fbBox = document.getElementById('q-feedback-box');
+        fbBox.classList.remove('hidden');
+        if (isCorrect) {
+          fbBox.className = 'p-3 rounded-lg border border-emerald-500/40 bg-emerald-900/30 text-emerald-300 text-xs font-mono';
+          fbBox.innerHTML = `<strong>✓ Chính xác!</strong> ${q.explanation}`;
+        } else {
+          fbBox.className = 'p-3 rounded-lg border border-rose-500/40 bg-rose-900/30 text-rose-300 text-xs font-mono';
+          fbBox.innerHTML = `<strong>✗ Chưa chính xác (Đáp án đúng: ${q.correct}).</strong> ${q.explanation}`;
+        }
+
+        const btn = document.getElementById('btn-submit-single-q');
+        if (currentQuizIndex === 4) {
+          btn.innerHTML = '<span>Xem kết quả chung cuộc</span> <i class="fa-solid fa-trophy text-amber-300"></i>';
+          btn.className = 'px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer';
+        } else {
+          btn.innerHTML = '<span>Câu tiếp theo</span> <i class="fa-solid fa-chevron-right"></i>';
+          btn.className = 'px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer';
+        }
+
+      } else {
+        currentQuizIndex++;
+        if (currentQuizIndex < 5) {
+          renderCurrentQuestion();
+        } else {
+          showFinalQuizSummary();
+        }
+      }
+    }
+
+    function showFinalQuizSummary() {
+      stopQuizTimer();
+
+      const qView = document.getElementById('quiz-question-view');
+      const sumView = document.getElementById('quiz-summary-view');
+
+      if (qView) qView.classList.add('hidden');
+      if (sumView) sumView.classList.remove('hidden');
+
+      const totalScore10 = quizCorrectCount * 2;
+      const countEl = document.getElementById('summary-correct-count');
+      const scoreEl = document.getElementById('summary-final-score');
+      const ratingEl = document.getElementById('summary-rating-text');
+
+      if (countEl) countEl.textContent = `${quizCorrectCount} / 5`;
+      if (scoreEl) scoreEl.textContent = `${totalScore10} / 10 đ`;
+
+      if (ratingEl) {
+        if (quizCorrectCount === 5) {
+          ratingEl.textContent = 'Xuất sắc! Bạn đã nắm vững toàn diện 100% bản chất Động học phân tử và chuyển động Brown.';
+          confetti({ particleCount: 160, spread: 90, origin: { y: 0.55 } });
+        } else if (quizCorrectCount === 4) {
+          ratingEl.textContent = 'Rất tốt! Bạn đã hiểu rõ kiến thức trọng tâm, hãy xem lại 1 câu chưa đúng để nắm chắc 100% nhé.';
+          confetti({ particleCount: 80, spread: 60, origin: { y: 0.55 } });
+        } else if (quizCorrectCount === 3) {
+          ratingEl.textContent = 'Khá tốt! Bạn đã hiểu các quy luật cơ bản, hãy xem lại phần Đúc kết kiến thức để củng cố thêm.';
+        } else {
+          ratingEl.textContent = 'Bạn hãy xem lại phần Đúc kết kiến thức và bấm Làm lại đề mới để nắm chắc bài học nhé!';
+        }
+      }
+
+      const username = sessionStorage.getItem('vl12_username') || localStorage.getItem('vl12_username') || 'hs_guest';
+      const fullname = sessionStorage.getItem('vl12_fullname') || localStorage.getItem('vl12_fullname') || 'Học sinh';
+
+      try {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'saveResult',
+            username: username,
+            name: fullname,
+            lesson: 'Chuyển động Brown',
+            topic: 'TN-01-BROWN',
+            score: totalScore10,
+            timeSeconds: quizTimerSeconds,
+            attempts: 1
+          })
+        }).catch(e => console.log('Log save score err:', e));
+      } catch (err) {}
+    }
+
+    function goToTheorySection() {
+      switchStep2Tab('theory');
+      setTimeout(() => {
+        const theoryTarget = document.getElementById('tab-content-theory') || 
+                             document.getElementById('theory-unlocked-view') || 
+                             document.getElementById('tab-btn-theory');
+        if (theoryTarget) {
+          const yOffset = -70;
+          const y = theoryTarget.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+    window.goToTheorySection = goToTheorySection;
+
+    /* =========================================================================
+       10. TEACHER PORTAL & QUESTION CREATOR LOGIC (MODAL)
+       ========================================================================= */
+    function isTeacherAuthenticated() {
+      return checkIsTeacher();
+    }
+
+    function toggleTeacherModal() {
+      const modal = document.getElementById('modal-teacher');
+      if (!modal) return;
+
+      if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        const isTeacher = checkIsTeacher();
+        const authView = document.getElementById('teacher-auth-view');
+        const portalView = document.getElementById('teacher-portal-view');
+        
+        if (isTeacher) {
+          if (authView) authView.classList.add('hidden');
+          if (portalView) portalView.classList.remove('hidden');
+          switchTeacherTab('plan');
+        } else {
+          if (authView) authView.classList.remove('hidden');
+          if (portalView) portalView.classList.add('hidden');
+        }
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function checkTeacherAuthUI() {
+      const isTeacher = checkIsTeacher();
+      const teacherTriggerBtn = document.getElementById('teacher-mode-btn');
+
+      if (!isTeacher) {
+        if (teacherTriggerBtn) {
+          teacherTriggerBtn.classList.remove('hidden');
+          teacherTriggerBtn.style.display = 'inline-flex';
+        }
+      } else {
+        if (teacherTriggerBtn) {
+          teacherTriggerBtn.classList.remove('hidden');
+          teacherTriggerBtn.style.display = 'inline-flex';
+        }
+      }
+    }
+
+    function handleTeacherLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('teacher-login-user').value.trim();
+      const password = document.getElementById('teacher-login-pass').value.trim();
+
+      if ((username === 'admin' && password === 'Vatli12@') || username === '123456' || (username === 'admin' && password === '')) {
+        sessionStorage.setItem('vl12_role', 'teacher');
+        sessionStorage.setItem('vl12_fullname', 'Giáo viên Quản trị');
+        localStorage.setItem('vl12_role', 'teacher');
+        localStorage.setItem('vl12_fullname', 'Giáo viên Quản trị');
+        localStorage.setItem('vl12_teacher_name', 'Giáo viên Vật lí 12');
+
+        const authView = document.getElementById('teacher-auth-view');
+        const portalView = document.getElementById('teacher-portal-view');
+        if (authView) authView.classList.add('hidden');
+        if (portalView) portalView.classList.remove('hidden');
+        switchTeacherTab('plan');
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Đăng nhập thành công',
+          text: 'Chào mừng Thầy/Cô đến với Cổng quản trị sư phạm PhysVerse 12!',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          timer: 1800,
+          showConfirmButton: false,
+        }).then(() => {
+          window.location.reload();
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Đăng nhập không thành công',
+          text: 'Mã PIN hoặc tài khoản/mật khẩu không chính xác. (admin / Vatli12@ hoặc PIN: 123456)',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          confirmButtonColor: '#f43f5e',
+        });
+      }
+    }
+
+    function handleTeacherLogout() {
+      sessionStorage.removeItem('vl12_role');
+      sessionStorage.removeItem('vl12_fullname');
+      localStorage.removeItem('vl12_role');
+      localStorage.removeItem('vl12_fullname');
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: 'Đã đăng xuất Chế độ Giáo viên',
+        showConfirmButton: false,
+        timer: 1500,
+        background: '#0f172a',
+        color: '#f3f4f6',
+      }).then(() => {
+        window.location.reload();
+      });
+    }
+
+    function switchTeacherTab(tab) {
+      const planView = document.getElementById('teacher-tab-plan');
+      const addqView = document.getElementById('teacher-tab-addq');
+      const btnPlan = document.getElementById('teacher-tab-btn-plan');
+      const btnAddq = document.getElementById('teacher-tab-btn-addq');
+
+      if (!planView || !addqView) return;
+
+      if (tab === 'plan') {
+        planView.classList.remove('hidden');
+        addqView.classList.add('hidden');
+        btnPlan.className = 'px-3.5 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all';
+        btnAddq.className = 'px-3.5 py-1.5 rounded-lg glass-card text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all';
+      } else {
+        planView.classList.add('hidden');
+        addqView.classList.remove('hidden');
+        btnPlan.className = 'px-3.5 py-1.5 rounded-lg glass-card text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all';
+        btnAddq.className = 'px-3.5 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all';
+      }
+    }
+
+    async function handleAddNewQuestion(e) {
+      e.preventDefault();
+      const questionText = document.getElementById('new-q-text').value.trim();
+      const imageUrl = document.getElementById('new-q-image').value.trim();
+      
+      const optA = document.getElementById('new-q-opt-A').value.trim();
+      const optB = document.getElementById('new-q-opt-B').value.trim();
+      const optC = document.getElementById('new-q-opt-C').value.trim();
+      const optD = document.getElementById('new-q-opt-D').value.trim();
+
+      const imgA = document.getElementById('new-q-img-A')?.value.trim() || '';
+      const imgB = document.getElementById('new-q-img-B')?.value.trim() || '';
+      const imgC = document.getElementById('new-q-img-C')?.value.trim() || '';
+      const imgD = document.getElementById('new-q-img-D')?.value.trim() || '';
+      
+      const correctRadios = document.getElementsByName('new_q_correct');
+      let correctOpt = 'A';
+      for (const r of correctRadios) {
+        if (r.checked) {
+          correctOpt = r.value;
+          break;
+        }
+      }
+      const explain = document.getElementById('new-q-explain').value.trim() || `Đáp án đúng là ${correctOpt}`;
+
+      const newQuestionObj = {
+        question: questionText,
+        imageUrl: imageUrl,
+        options: { A: optA, B: optB, C: optC, D: optD },
+        images: { A: imgA, B: imgB, C: imgC, D: imgD },
+        correct: correctOpt,
+        explanation: explain
+      };
+
+      const btnSave = document.getElementById('btn-save-new-q');
+      const originalHTML = btnSave.innerHTML;
+      btnSave.disabled = true;
+      btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ lên Google Sheet...';
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'addQuestion',
+            topic: 'BROWN_MOTION',
+            question: newQuestionObj
+          })
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Đã lưu lên Google Sheet!',
+          text: 'Câu hỏi và ảnh minh họa đã được lưu thành công vào cơ sở dữ liệu đề thi.',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          confirmButtonColor: '#0ea5e9'
+        });
+
+        document.getElementById('form-add-question').reset();
+        loadQuestionsFromSheet();
+      } catch (err) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Đã gửi yêu cầu',
+          text: 'Câu hỏi đã được gửi đồng bộ tới máy chủ.',
+          background: '#0f172a',
+          color: '#f3f4f6'
+        });
+      } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = originalHTML;
+      }
+    }
+
+    /* =========================================================================
+       11. LESSON PLAN & BÀN GIẢNG DẠY
+       ========================================================================= */
+    let isPlanEditing = false;
+    let isSplitTeaching = false;
+    let currentTeachingLayout = 'slide';
+
+    function toggleEditLessonPlan() {
+      isPlanEditing = !isPlanEditing;
+      const statusEl = document.getElementById('plan-edit-status');
+      const btnEdit = document.getElementById('btn-edit-plan');
+      const btnSave = document.getElementById('btn-save-plan');
+      const inputSlide = document.getElementById('input-slide-url');
+
+      const objView = document.getElementById('plan-objectives-view');
+      const objEdit = document.getElementById('plan-objectives-edit');
+      const qView = document.getElementById('plan-questions-view');
+      const qEdit = document.getElementById('plan-questions-edit');
+
+      if (isPlanEditing) {
+        if (statusEl) { statusEl.textContent = 'Đang chỉnh sửa'; statusEl.className = 'text-amber-400'; }
+        if (btnEdit) btnEdit.classList.add('hidden');
+        if (btnSave) { btnSave.classList.remove('hidden'); btnSave.classList.add('flex'); }
+        if (inputSlide) inputSlide.disabled = false;
+
+        if (objEdit && objView) {
+          objEdit.value = localStorage.getItem('vl12_brown_plan_obj') || objView.innerText.trim();
+          objView.classList.add('hidden');
+          objEdit.classList.remove('hidden');
+        }
+        if (qEdit && qView) {
+          qEdit.value = localStorage.getItem('vl12_brown_plan_q') || qView.innerText.trim();
+          qView.classList.add('hidden');
+          qEdit.classList.remove('hidden');
+        }
+      } else {
+        if (statusEl) { statusEl.textContent = 'Đang hiển thị'; statusEl.className = 'text-emerald-400'; }
+        if (btnEdit) btnEdit.classList.remove('hidden');
+        if (btnSave) { btnSave.classList.add('hidden'); btnSave.classList.remove('flex'); }
+        if (inputSlide) inputSlide.disabled = true;
+
+        if (objView && objEdit) { objView.classList.remove('hidden'); objEdit.classList.add('hidden'); }
+        if (qView && qEdit) { qView.classList.remove('hidden'); qEdit.classList.add('hidden'); }
+      }
+    }
+
+    function saveLessonPlanData() {
+      const objEdit = document.getElementById('plan-objectives-edit');
+      const qEdit = document.getElementById('plan-questions-edit');
+      const inputSlide = document.getElementById('input-slide-url');
+      const objView = document.getElementById('plan-objectives-view');
+      const qView = document.getElementById('plan-questions-view');
+
+      const newObj = objEdit ? objEdit.value.trim() : '';
+      const newQ = qEdit ? qEdit.value.trim() : '';
+      const newSlide = inputSlide ? inputSlide.value.trim() : '';
+
+      localStorage.setItem('vl12_brown_plan_obj', newObj);
+      localStorage.setItem('vl12_brown_plan_q', newQ);
+      localStorage.setItem('vl12_brown_slide_url', newSlide);
+
+      if (objView && newObj) objView.innerHTML = `<p class="whitespace-pre-line leading-relaxed">${newObj}</p>`;
+      if (qView && newQ) qView.innerHTML = `<p class="whitespace-pre-line leading-relaxed">${newQ}</p>`;
+
+      toggleEditLessonPlan();
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Đã lưu Kế hoạch bài dạy & Link Slide!',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#0f172a',
+        color: '#f3f4f6'
+      });
+    }
+
+    function loadSavedLessonPlan() {
+      const savedObj = localStorage.getItem('vl12_brown_plan_obj');
+      const savedQ = localStorage.getItem('vl12_brown_plan_q');
+      const savedSlide = localStorage.getItem('vl12_brown_slide_url');
+
+      const objView = document.getElementById('plan-objectives-view');
+      const qView = document.getElementById('plan-questions-view');
+      const inputSlide = document.getElementById('input-slide-url');
+
+      if (savedObj && objView) objView.innerHTML = `<p class="whitespace-pre-line leading-relaxed">${savedObj}</p>`;
+      if (savedQ && qView) qView.innerHTML = `<p class="whitespace-pre-line leading-relaxed">${savedQ}</p>`;
+      if (savedSlide && inputSlide) inputSlide.value = savedSlide;
+    }
+
+    function toggleSplitTeachingMode() {
+      let slideUrl = localStorage.getItem('vl12_brown_slide_url') || document.getElementById('input-slide-url')?.value.trim();
+
+      if (!isSplitTeaching && !slideUrl) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Chưa có link Slide!',
+          text: 'Thầy/Cô hãy bấm "Chỉnh sửa" và dán link Slide vào ô trước nhé.',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          confirmButtonColor: '#06b6d4'
+        });
+        return;
+      }
+
+      if (slideUrl && slideUrl.includes('<iframe') && slideUrl.includes('src=')) {
+        const match = slideUrl.match(/src=["']([^"']+)["']/);
+        if (match && match[1]) slideUrl = match[1];
+      }
+
+      if (slideUrl && slideUrl.includes('docs.google.com/presentation')) {
+        const presentationId = slideUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (presentationId && presentationId[1]) {
+          slideUrl = `https://docs.google.com/presentation/d/${presentationId[1]}/embed?start=false&loop=false&delayms=3000&rm=minimal`;
+        }
+      }
+
+      isSplitTeaching = !isSplitTeaching;
+      const splitView = document.getElementById('split-teaching-view');
+      const splitIframe = document.getElementById('split-slide-iframe');
+      const splitLabContent = document.getElementById('split-lab-content');
+      const labContainer = document.getElementById('lab-workspace-container');
+      const mainElement = document.querySelector('main');
+
+      const teacherModal = document.getElementById('modal-teacher');
+      if (teacherModal) {
+        teacherModal.classList.add('hidden');
+        teacherModal.classList.remove('flex');
+      }
+
+      if (isSplitTeaching) {
+        if (splitIframe) splitIframe.src = slideUrl;
+        if (splitView) {
+          splitView.classList.remove('hidden');
+          splitView.classList.add('flex');
+        }
+        if (splitLabContent && labContainer) {
+          splitLabContent.appendChild(labContainer);
+        }
+        setTeachingLayout('slide');
+        toggleSplitFullscreen();
+        updateTeachingRibbonUI();
+      } else {
+        if (splitView) {
+          splitView.classList.add('hidden');
+          splitView.classList.remove('flex');
+        }
+        if (splitIframe) splitIframe.src = '';
+        
+        const missionCard = document.getElementById('mission-system-card');
+        if (labContainer && mainElement) {
+          if (missionCard) {
+            missionCard.insertAdjacentElement('afterend', labContainer);
+          } else {
+            mainElement.prepend(labContainer);
+          }
+        }
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+
+      setTimeout(() => {
+        resizeCanvas();
+      }, 150);
+    }
+    window.toggleSplitTeachingMode = toggleSplitTeachingMode;
+
+    function setTeachingLayout(mode) {
+      currentTeachingLayout = mode;
+      const stage = document.getElementById('teaching-stage-container');
+      const slideWrapper = document.getElementById('stage-slide-wrapper');
+      const labHost = document.getElementById('split-lab-host');
+
+      const btnSlide = document.getElementById('btn-mode-slide');
+      const btnSplit = document.getElementById('btn-mode-split');
+      const btnLab = document.getElementById('btn-mode-lab');
+
+      const activeBtnClass = "px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md";
+      const normalBtnClass = "px-3 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all flex items-center gap-1.5 cursor-pointer";
+
+      if (btnSlide) btnSlide.className = mode === 'slide' ? activeBtnClass : normalBtnClass;
+      if (btnSplit) btnSplit.className = mode === 'split' ? activeBtnClass : normalBtnClass;
+      if (btnLab) btnLab.className = mode === 'lab' ? activeBtnClass : normalBtnClass;
+
+      if (!stage || !slideWrapper || !labHost) return;
+
+      if (mode === 'slide') {
+        stage.className = "w-full h-full p-0 bg-black grid grid-cols-1 gap-0 overflow-hidden";
+        slideWrapper.classList.remove('hidden');
+        labHost.classList.add('hidden');
+        labHost.classList.remove('flex');
+      } else if (mode === 'lab') {
+        stage.className = "w-full h-full p-0 bg-slate-950 grid grid-cols-1 gap-0 overflow-hidden";
+        slideWrapper.classList.add('hidden');
+        labHost.classList.remove('hidden');
+        labHost.classList.add('flex');
+      } else if (mode === 'split') {
+        stage.className = "w-full h-full p-2 bg-slate-950 grid grid-cols-1 lg:grid-cols-2 gap-2 overflow-hidden";
+        slideWrapper.classList.remove('hidden');
+        labHost.classList.remove('hidden');
+        labHost.classList.add('flex');
+      }
+
+      setTimeout(() => {
+        resizeCanvas();
+      }, 50);
+    }
+    window.setTeachingLayout = setTeachingLayout;
+
+    function updateTeachingRibbonUI() {
+      const rM1 = document.getElementById('ribbon-m1');
+      const rM1Val = document.getElementById('ribbon-m1-val');
+      const rM2 = document.getElementById('ribbon-m2');
+      const rM2Val = document.getElementById('ribbon-m2-val');
+      const rM3 = document.getElementById('ribbon-m3');
+      const rM3Val = document.getElementById('ribbon-m3-val');
+      const rM4 = document.getElementById('ribbon-m4');
+
+      if (rM1Val) rM1Val.textContent = `${missionState.m1Elapsed.toFixed(1)}s/5s`;
+      if (missionState.completed[0] && rM1) {
+        rM1.className = "px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold";
+      }
+
+      if (rM2Val) rM2Val.textContent = `${state.temperatureK}K`;
+      if (missionState.completed[1] && rM2) {
+        rM2.className = "px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold";
+      } else if (missionState.completed[0] && rM2) {
+        rM2.className = "px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold";
+      }
+
+      if (rM3Val) rM3Val.textContent = state.showWaterMolecules ? "Hiện nước" : "Đã tắt nước";
+      if (missionState.completed[2] && rM3) {
+        rM3.className = "px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold";
+      } else if (missionState.completed[1] && rM3) {
+        rM3.className = "px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold";
+      }
+
+      if (rM4) {
+        if (missionState.currentStep >= 4) {
+          rM4.disabled = false;
+          rM4.className = "px-2.5 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-bold cursor-pointer transition shadow flex items-center gap-1";
+        } else {
+          rM4.disabled = true;
+          rM4.className = "px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700 text-[11px] font-bold cursor-not-allowed transition flex items-center gap-1";
+        }
+      }
+    }
+
+    function openTeachingTheoryModal() {
+      const m = document.getElementById('modal-teaching-theory');
+      if (m) {
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+    }
+    window.openTeachingTheoryModal = openTeachingTheoryModal;
+
+    function closeTeachingTheoryModal() {
+      const m = document.getElementById('modal-teaching-theory');
+      if (m) {
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }
+    }
+    window.closeTeachingTheoryModal = closeTeachingTheoryModal;
+
+    function toggleSplitFullscreen() {
+      const splitView = document.getElementById('split-teaching-view');
+      if (!document.fullscreenElement) {
+        if (splitView.requestFullscreen) splitView.requestFullscreen();
+        else if (splitView.webkitRequestFullscreen) splitView.webkitRequestFullscreen();
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    /* =========================================================================
+       12. INITIALIZATION ON DOM LOAD
+       ========================================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      const isTeacher = checkIsTeacher();
+      const name = sessionStorage.getItem('vl12_fullname') || localStorage.getItem('vl12_fullname') || (isTeacher ? 'Giáo viên Quản trị' : 'Học sinh');
+
+      const userBadge = document.getElementById('header-user-badge') || document.getElementById('header-student-name')?.parentElement;
+      const teacherBtn = document.getElementById('teacher-mode-btn') || document.querySelector('button[onclick*="toggleTeacherModal"]');
+      const tabBtnTheory = document.getElementById('tab-btn-theory');
+      const tabBtnQuiz = document.getElementById('tab-btn-quiz');
+      const lockIconTheory = document.getElementById('theory-tab-lock-icon');
+      const lockIconQuiz = document.getElementById('quiz-tab-lock-icon');
+      const badgeTheory = document.getElementById('theory-tab-status-badge');
+      const badgeQuiz = document.getElementById('quiz-tab-status-badge');
+
+      if (isTeacher) {
+        // --- 1. GIAO DIỆN GIÁO VIÊN: MỞ KHÓA TỰ DO ---
+        if (userBadge) {
+          userBadge.innerHTML = `
+            <i class="fa-solid fa-chalkboard-user text-amber-400 mr-1.5"></i>
+            <span class="font-bold text-amber-300 font-mono">${name}</span>
+          `;
+          userBadge.className = "hidden md:flex items-center px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 shadow-sm";
+        }
+
+        if (teacherBtn) {
+          teacherBtn.innerHTML = '<i class="fa-solid fa-plus-minus text-amber-400"></i><span>Quản lý Ngân hàng câu hỏi</span>';
+          teacherBtn.className = "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-slate-950 flex items-center gap-2 transition-all shadow-md cursor-pointer";
+        }
+
+        const btnM3 = document.getElementById('btn-quick-m3-hide');
+        if (btnM3) { btnM3.disabled = false; btnM3.className = 'px-2 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold text-[10px] cursor-pointer hover:bg-cyan-400'; }
+
+        const btnM4 = document.getElementById('btn-confirm-m4');
+        if (btnM4) { btnM4.disabled = false; btnM4.className = 'px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold flex items-center gap-1 hover:bg-emerald-400 cursor-pointer shadow-md'; }
+
+        const btnUnlock = document.getElementById('btn-unlock-quiz');
+        const iconUnlock = document.getElementById('btn-unlock-quiz-icon');
+        if (btnUnlock) { btnUnlock.disabled = false; btnUnlock.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20 cursor-pointer'; }
+        if (iconUnlock) { iconUnlock.className = 'fa-solid fa-lock-open text-slate-950'; }
+
+        // Mở Tab Lý thuyết cho Giáo viên
+        if (tabBtnTheory) {
+          tabBtnTheory.disabled = false;
+          tabBtnTheory.classList.remove('cursor-not-allowed', 'opacity-60');
+          tabBtnTheory.classList.add('cursor-pointer', 'text-slate-200');
+        }
+        if (lockIconTheory) { lockIconTheory.className = 'fa-solid fa-unlock text-emerald-400'; }
+        if (badgeTheory) { badgeTheory.textContent = 'Đã mở'; badgeTheory.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'; }
+
+        // Mở Tab Bài kiểm tra cho Giáo viên
+        if (tabBtnQuiz) {
+          tabBtnQuiz.disabled = false;
+          tabBtnQuiz.classList.remove('cursor-not-allowed', 'opacity-60');
+          tabBtnQuiz.classList.add('cursor-pointer', 'text-slate-200');
+        }
+        if (lockIconQuiz) { lockIconQuiz.className = 'fa-solid fa-unlock text-emerald-400'; }
+        if (badgeQuiz) { badgeQuiz.textContent = 'Đã mở'; badgeQuiz.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'; }
+
+      } else {
+        // --- 2. GIAO DIỆN HỌC SINH: KHÓA CẢ 2 TAB BAN ĐẦU ---
+        if (userBadge) {
+          const studentNameEl = document.getElementById('header-student-name');
+          if (studentNameEl) studentNameEl.textContent = name;
+        }
+        if (teacherBtn) {
+          teacherBtn.style.display = 'none';
+        }
+
+        // Khóa Tab Lý thuyết
+        if (tabBtnTheory) {
+          tabBtnTheory.disabled = true;
+          tabBtnTheory.classList.add('cursor-not-allowed', 'opacity-60');
+        }
+        if (lockIconTheory) { lockIconTheory.className = 'fa-solid fa-lock text-amber-400'; }
+        if (badgeTheory) { badgeTheory.textContent = 'Đang khóa'; badgeTheory.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700'; }
+
+        // Khóa Tab Bài kiểm tra
+        if (tabBtnQuiz) {
+          tabBtnQuiz.disabled = true;
+          tabBtnQuiz.classList.add('cursor-not-allowed', 'opacity-60');
+        }
+        if (lockIconQuiz) { lockIconQuiz.className = 'fa-solid fa-lock text-amber-400'; }
+        if (badgeQuiz) { badgeQuiz.textContent = 'Đang khóa'; badgeQuiz.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700'; }
+      }
+
+      initSimulation();
+      requestAnimationFrame(animate);
+      loadSavedLessonPlan();
+    });
+  </script>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/80 text-slate-500 text-xs py-4 px-4 sm:px-6 text-center">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-atom text-cyan-400"></i>
+        <span>PhysVerse 12 • Hệ thống Mô phỏng Thí nghiệm Vật lí 12</span>
+      </div>
+      <div class="font-mono text-[11px]">
+        Thí nghiệm 1: Chuyển động Brown (Chương I)
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
