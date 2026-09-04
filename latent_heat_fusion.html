@@ -1859,12 +1859,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 4. Các hệ thống phụ trợ (Kéo thả, Đồ thị, Bảng số liệu)
   try {
-    setupDragAndDropSystem();
-    initGraph2D();
-    renderDataTable();
-    loadQuizFromSheet();
-    updateMissionProgressUI();
-    updateLabReportData();
+    if (typeof setupDragAndDropSystem === 'function') setupDragAndDropSystem();
+    if (typeof initGraph2D === 'function') initGraph2D(); // Chỉ chạy nếu hàm tồn tại, không gây sập code
+    if (typeof renderDataTable === 'function') renderDataTable();
+    
+    // GỌI HÀM NẠP CÂU HỎI
+    if (typeof loadQuizFromSheet === 'function') {
+      loadQuizFromSheet();
+    }
+    
+    if (typeof updateMissionProgressUI === 'function') updateMissionProgressUI();
+    if (typeof updateLabReportData === 'function') updateLabReportData();
   } catch (e) {
     console.warn("Init warning:", e);
   }
