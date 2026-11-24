@@ -3105,20 +3105,15 @@ function updateRightHandVisual() {
 if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
 
-       const attachHandToWire = (model) => {
+     const attachHandToWire = (model) => {
           const handClone = model.clone();
-
-          // Mặt phẳng cắt bỏ hoàn toàn miếng đế tròn ở cổ tay (cắt mọi phần có x > 0.68)
-          const cutPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0.68);
 
           handClone.traverse((child) => {
             if (child.isMesh) {
               child.material = new THREE.MeshStandardMaterial({
                 color: 0xc98256,
                 roughness: 0.62,
-                metalness: 0.04,
-                side: THREE.DoubleSide,
-                clippingPlanes: [cutPlane]
+                metalness: 0.04
               });
             }
           });
@@ -3134,24 +3129,15 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Xoay nằm ngang và chỉnh góc nghiêng nhẹ để ngón cái thẳng đứng song song dây, hết đâm xéo
+          // 2. Căn lỗ khoét của bàn tay vào đúng trục dây dẫn (x = 0, z = 0)
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handClone);
-        // Dựng thẳng ngón cái song song dây, dịch bàn tay áp sát cạnh dây (không để dây đâm xuyên lòng bàn tay)
-          alignedGroup.rotation.z = Math.PI / 2;
-          alignedGroup.position.set(0.54, 0.02, 0.14);
+          alignedGroup.rotation.set(0, 0, 0);
+          alignedGroup.position.set(0.36, 0, 0.02);
 
-          const wristCuff = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.145, 0.155, 0.08, 24),
-            new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.1 })
-          );
-          wristCuff.rotation.z = Math.PI / 2;
-          wristCuff.position.set(0.68, 0.02, 0.14);
-
-          // 3. Đặt tâm xoay (pivot) trùng đúng trục dây dẫn (x = 0, z = 0) để lật 180° không bị lệch dây
+          // 3. Nhóm bọc ngoài lật 180° khi đảo chiều dòng điện I lên / I xuống
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
-          pivot.add(wristCuff);
           pivot.position.set(0, 1.24, 0);
           pivot.rotation.x = isUp ? 0 : Math.PI;
 
