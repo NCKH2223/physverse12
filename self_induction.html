@@ -1258,9 +1258,12 @@
 
           <div class="p-3.5 rounded-xl bg-slate-900/90 border border-emerald-500/40 space-y-2">
             <h4 class="font-bold text-emerald-300 text-sm">3. Quy tắc nắm bàn tay phải</h4>
-            <p class="text-slate-300 leading-relaxed">• <strong>Dòng thẳng:</strong> Ngón cái chỉ chiều $I$ $ightarrow$ 4 ngón khum chỉ chiều đường sức từ $ec{B}$.</p>
-            <p class="text-slate-300 leading-relaxed">• <strong>Vòng dây tròn:</strong> 4 ngón khum theo chiều $I$ $ightarrow$ Ngón cái chỉ chiều $ec{B}$ qua mặt phẳng vòng dây.</p>
-            <p class="text-slate-300 leading-relaxed">• <strong>Ống dây:</strong> 4 ngón khum theo chiều $I$ $ightarrow$ Ngón cái chỉ chiều $ec{B}$ trong lòng ống dây (đầu ngón cái là cực Bắc $N$).</p>
+            <p class="text-slate-300 leading-relaxed">• <strong>Dòng thẳng:</strong> Ngón cái chỉ chiều $I$ $
+ightarrow$ 4 ngón khum chỉ chiều đường sức từ $ec{B}$.</p>
+            <p class="text-slate-300 leading-relaxed">• <strong>Vòng dây tròn:</strong> 4 ngón khum theo chiều $I$ $
+ightarrow$ Ngón cái chỉ chiều $ec{B}$ qua mặt phẳng vòng dây.</p>
+            <p class="text-slate-300 leading-relaxed">• <strong>Ống dây:</strong> 4 ngón khum theo chiều $I$ $
+ightarrow$ Ngón cái chỉ chiều $ec{B}$ trong lòng ống dây (đầu ngón cái là cực Bắc $N$).</p>
           </div>
         </div>
 
@@ -3103,35 +3106,39 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
 
         const attachHandToWire = (model) => {
           const handClone = model.clone();
-		  handClone.traverse((child) => {
-  if (child.isMesh) {
-    child.material = new THREE.MeshStandardMaterial({
-      color: 0xe09f70,
-      roughness: 0.55,
-      metalness: 0.04
-    });
-  }
-});
+
+          // Tô màu da ấm vừa phải để rõ khớp ngón, không bị lóa trắng dưới đèn 3D
+          handClone.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                color: 0xc98256,
+                roughness: 0.65,
+                metalness: 0.04
+              });
+            }
+          });
 
           // 1. Tự động đo kích thước và căn tâm mô hình về chuẩn vừa khớp dây dẫn
           const box = new THREE.Box3().setFromObject(handClone);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetSize = 1.15; // Độ lớn bàn tay so với dây dẫn
+          const targetSize = 1.25;
           const scaleFactor = targetSize / maxDim;
 
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Nhóm bọc ngoài để xoay đúng chiều I lên / I xuống quanh tâm dây
-          const pivot = new THREE.Group();
-          pivot.add(handClone);
-          pivot.position.set(0.18, 1.24, 0.02);
+          // 2. Xoay nằm ngang 90° để cổ tay sang phải (+X), ngón cái chỉ lên (+Y), 4 ngón ôm dây
+          const alignedGroup = new THREE.Group();
+          alignedGroup.add(handClone);
+          alignedGroup.rotation.z = Math.PI / 2;
 
-          // Nếu file .glb tải về bị quay lệch mặt trước, bạn chỉ cần chỉnh góc Y (Math.PI/2, -Math.PI/2, Math.PI)
-          const baseRotY = 0;
-          pivot.rotation.set(isUp ? 0 : Math.PI, baseRotY, 0);
+          // 3. Nhóm bọc ngoài để dịch sang phải cho khớp dây và lật úp 180° khi đảo chiều I xuống
+          const pivot = new THREE.Group();
+          pivot.add(alignedGroup);
+          pivot.position.set(0.32, 1.24, 0.02);
+          pivot.rotation.x = isUp ? 0 : Math.PI;
 
           rightHandGroup.add(pivot);
         };
