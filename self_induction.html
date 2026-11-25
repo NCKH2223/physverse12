@@ -3102,19 +3102,19 @@ function updateRightHandVisual() {
       }
 
   // Dựng mô hình bàn tay phải 3D dáng tự nhiên (tham chiếu image_7b3101.png: cổ tay & lòng bàn tay bên phải, ngón cái dọc dây, 4 ngón khum tự nhiên không bao tròn kín)
-if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
+// Dựng mô hình bàn tay phải 3D chuẩn giải phẫu ôm quanh dây dẫn thẳng đứng
+      if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
         const pivot = new THREE.Group();
 
-        // Vật liệu da tông trầm ấm chống lóa dưới ánh đèn 3D, nổi rõ khối ngón tay
         const skinMat = new THREE.MeshStandardMaterial({
-          color: 0xb87452,
-          roughness: 0.78,
+          color: 0xc27c58,
+          roughness: 0.76,
           metalness: 0.02
         });
         const nailMat = new THREE.MeshStandardMaterial({
-          color: 0xdcb49e,
-          roughness: 0.45,
+          color: 0xe3beaa,
+          roughness: 0.42,
           metalness: 0.02
         });
         const sleeveMat = new THREE.MeshStandardMaterial({
@@ -3123,13 +3123,13 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           metalness: 0.05
         });
         const cuffBandMat = new THREE.MeshStandardMaterial({
-          color: 0x152a46,
+          color: 0x142640,
           roughness: 0.78,
           metalness: 0.04
         });
 
-        // Hàm tạo ống ngón tay thuôn nhỏ tự nhiên về đầu ngón kèm khớp đốt
-        const createTaperedFinger = (points, rBase, rTip, tubularSegs, radialSegs) => {
+        // Hàm tạo đốt ngón tay thuôn tự nhiên kèm khớp gập
+        const createFingerMesh = (points, rBase, rTip, tubularSegs = 26, radialSegs = 14) => {
           const curve = new THREE.CatmullRomCurve3(points);
           const geom = new THREE.TubeGeometry(curve, tubularSegs, 1.0, radialSegs, false);
           const pos = geom.attributes.position;
@@ -3138,8 +3138,8 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           for (let i = 0; i <= tubularSegs; i++) {
             const u = i / tubularSegs;
             const centerPt = curve.getPointAt(u);
-            const joint1 = 0.055 * rBase * Math.exp(-Math.pow((u - 0.36) / 0.09, 2));
-            const joint2 = 0.040 * rBase * Math.exp(-Math.pow((u - 0.68) / 0.08, 2));
+            const joint1 = 0.06 * rBase * Math.exp(-Math.pow((u - 0.38) / 0.09, 2));
+            const joint2 = 0.045 * rBase * Math.exp(-Math.pow((u - 0.72) / 0.08, 2));
             const rCurr = rBase + (rTip - rBase) * u + joint1 + joint2;
 
             for (let j = 0; j <= radialSegs; j++) {
@@ -3152,54 +3152,60 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           return new THREE.Mesh(geom, skinMat);
         };
 
-        // 1. Lòng bàn tay & mu bàn tay vát cạnh bo tròn mượt (nằm bên phải dây, không chạm vào dây)
-        const palmShape = new THREE.Shape();
-        palmShape.moveTo(0.085, -0.135);
-        palmShape.lineTo(0.285, -0.105);
-        palmShape.quadraticCurveTo(0.325, -0.100, 0.325, -0.065);
-        palmShape.lineTo(0.325, 0.065);
-        palmShape.quadraticCurveTo(0.325, 0.100, 0.285, 0.105);
-        palmShape.lineTo(0.085, 0.135);
-        palmShape.quadraticCurveTo(0.055, 0.135, 0.055, 0.095);
-        palmShape.lineTo(0.055, -0.095);
-        palmShape.quadraticCurveTo(0.055, -0.135, 0.085, -0.135);
+        // 1. KHỐI LÒNG BÀN TAY & MU BÀN TAY UỐN CONG LIỀN MẠCH
+        // Đi từ cổ tay bên phải -> bọc kín phía sau dây dẫn -> vòng sang 4 khớp ngón tay bên trái
+        const handBodyShape = new THREE.Shape();
+        handBodyShape.moveTo(0.26, 0.042);
+        // Mặt trong (lòng bàn tay ôm sát vỏ dây r = 0.060 mà không đâm xuyên)
+        handBodyShape.lineTo(0.095, 0.042);
+        handBodyShape.quadraticCurveTo(0.074, 0.042, 0.074, 0.005);
+        handBodyShape.quadraticCurveTo(0.074, -0.074, 0.0, -0.074);
+        handBodyShape.quadraticCurveTo(-0.074, -0.074, -0.074, 0.005);
+        handBodyShape.quadraticCurveTo(-0.074, 0.032, -0.090, 0.034);
+        // Mặt ngoài (mu bàn tay tròn trịa từ khớp ngón bên trái về cổ tay bên phải)
+        handBodyShape.quadraticCurveTo(-0.122, 0.034, -0.122, -0.015);
+        handBodyShape.quadraticCurveTo(-0.118, -0.116, 0.0, -0.118);
+        handBodyShape.quadraticCurveTo(0.145, -0.114, 0.26, -0.046);
+        handBodyShape.lineTo(0.26, 0.042);
 
-        const palmGeom = new THREE.ExtrudeGeometry(palmShape, {
-          depth: 0.048,
+        const handDepth = 0.225;
+        const handBodyGeom = new THREE.ExtrudeGeometry(handBodyShape, {
+          depth: handDepth,
           bevelEnabled: true,
-          bevelThickness: 0.030,
-          bevelSize: 0.022,
-          bevelSegments: 5
+          bevelThickness: 0.018,
+          bevelSize: 0.011,
+          bevelSegments: 4
         });
-        palmGeom.translate(0, 0, -0.024);
-        const palmMesh = new THREE.Mesh(palmGeom, skinMat);
-        palmMesh.rotation.y = -0.14;
-        pivot.add(palmMesh);
+        handBodyGeom.translate(0, 0, -handDepth / 2);
+        const handBodyMesh = new THREE.Mesh(handBodyGeom, skinMat);
+        handBodyMesh.rotation.x = Math.PI / 2;
+        pivot.add(handBodyMesh);
 
-        // 2. Bốn ngón tay (trỏ, giữa, áp út, út) khum ôm sát quanh vỏ dây dẫn (bán kính trong 0.056 > dây 0.052)
-        const fingerSpecs = [
-          { y: 0.116, rBase: 0.040, rTip: 0.031, endTheta: -Math.PI * 1.72 },
-          { y: 0.040, rBase: 0.042, rTip: 0.033, endTheta: -Math.PI * 1.75 },
-          { y: -0.037, rBase: 0.039, rTip: 0.030, endTheta: -Math.PI * 1.71 },
-          { y: -0.108, rBase: 0.033, rTip: 0.026, endTheta: -Math.PI * 1.65 }
+        // 2. BỐN NGÓN TAY GẬP ĐỐT Ở MẶT TRƯỚC (mọc từ khớp mu bàn tay bên trái, ôm ngang qua mặt trước dây)
+        const fingers = [
+          { y: 0.092, rBase: 0.031, rTip: 0.025, lenScale: 1.00 }, // Ngón trỏ
+          { y: 0.031, rBase: 0.033, rTip: 0.026, lenScale: 1.04 }, // Ngón giữa
+          { y: -0.030, rBase: 0.030, rTip: 0.024, lenScale: 0.98 }, // Ngón áp út
+          { y: -0.088, rBase: 0.026, rTip: 0.021, lenScale: 0.88 }  // Ngón út
         ];
-        const wireClearance = 0.056;
 
-        fingerSpecs.forEach((f) => {
-          const pts = [];
-          const steps = 10;
-          const startTheta = -Math.PI * 0.12;
-          for (let k = 0; k <= steps; k++) {
-            const t = k / steps;
-            const theta = startTheta + (f.endTheta - startTheta) * t;
-            const rLocal = f.rBase + (f.rTip - f.rBase) * t;
-            const rOrbit = wireClearance + rLocal;
-            pts.push(new THREE.Vector3(Math.cos(theta) * rOrbit, f.y, Math.sin(theta) * rOrbit));
-          }
+        fingers.forEach((f) => {
+          // Khớp đốt bàn tay (knuckle) nối mu bàn tay với ngón tay
+          const knuckle = new THREE.Mesh(new THREE.SphereGeometry(f.rBase * 1.06, 12, 10), skinMat);
+          knuckle.position.set(-0.096, f.y, 0.018);
+          pivot.add(knuckle);
 
-          pivot.add(createTaperedFinger(pts, f.rBase, f.rTip, 28, 14));
+          // Đường cong 3 đốt ngón tay gập tự nhiên qua mặt trước dây dẫn (z ≈ 0.090 > r_wire 0.060)
+          const tipX = 0.068 * f.lenScale;
+          const pts = [
+            new THREE.Vector3(-0.094, f.y, 0.020),
+            new THREE.Vector3(-0.056, f.y, 0.084),
+            new THREE.Vector3(0.015, f.y, 0.090),
+            new THREE.Vector3(tipX, f.y, 0.066)
+          ];
+          pivot.add(createFingerMesh(pts, f.rBase, f.rTip));
 
-          // Bo tròn đầu ngón tay và gắn móng tay mặt ngoài
+          // Bo tròn đầu ngón và móng tay mặt ngoài
           const tipPos = pts[pts.length - 1];
           const tipCap = new THREE.Mesh(new THREE.SphereGeometry(f.rTip * 0.98, 12, 10), skinMat);
           tipCap.position.copy(tipPos);
@@ -3207,60 +3213,66 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
 
           const nail = new THREE.Mesh(new THREE.SphereGeometry(f.rTip * 0.62, 10, 8), nailMat);
           nail.scale.set(0.45, 0.72, 1.05);
-          nail.position.set(tipPos.x + f.rTip * 0.25, tipPos.y, tipPos.z + f.rTip * 0.62);
+          nail.position.set(tipPos.x + f.rTip * 0.28, tipPos.y, tipPos.z + f.rTip * 0.58);
           nail.rotation.y = 0.45;
           pivot.add(nail);
         });
 
-        // 3. Gò ngón cái & ngón cái dựng thẳng đứng 100% song song với chiều dòng điện I
-        const thumbPoints = [
-          new THREE.Vector3(0.165, -0.025, 0.052),
-          new THREE.Vector3(0.112, 0.065, 0.074),
-          new THREE.Vector3(0.092, 0.175, 0.072),
-          new THREE.Vector3(0.088, 0.285, 0.066),
-          new THREE.Vector3(0.088, 0.375, 0.062)
-        ];
-        pivot.add(createTaperedFinger(thumbPoints, 0.048, 0.035, 24, 14));
+        // 3. GÒ NGÓN CÁI (THENAR) & NGÓN CÁI TỈ LỆ CHUẨN GIẢI PHẪU
+        const thenar = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 14), skinMat);
+        thenar.scale.set(0.072, 0.082, 0.046);
+        thenar.position.set(0.135, -0.018, 0.044);
+        thenar.rotation.set(0.12, -0.18, 0.35);
+        pivot.add(thenar);
 
-        const thumbTipPos = thumbPoints[thumbPoints.length - 1];
-        const thumbTip = new THREE.Mesh(new THREE.SphereGeometry(0.0345, 12, 10), skinMat);
+        // Ngón cái chỉ cao hơn ngón trỏ ~1 đốt ngón tay (tới y = 0.215), hơi ngả nhẹ tự nhiên
+        const thumbPts = [
+          new THREE.Vector3(0.118, 0.010, 0.058),
+          new THREE.Vector3(0.090, 0.082, 0.070),
+          new THREE.Vector3(0.085, 0.152, 0.068),
+          new THREE.Vector3(0.088, 0.215, 0.062)
+        ];
+        pivot.add(createFingerMesh(thumbPts, 0.036, 0.028, 22, 14));
+
+        const thumbTipPos = thumbPts[thumbPts.length - 1];
+        const thumbTip = new THREE.Mesh(new THREE.SphereGeometry(0.0275, 12, 10), skinMat);
         thumbTip.position.copy(thumbTipPos);
         pivot.add(thumbTip);
 
-        const thumbNail = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), nailMat);
-        thumbNail.scale.set(0.45, 1.15, 0.85);
-        thumbNail.position.set(thumbTipPos.x + 0.024, thumbTipPos.y - 0.006, thumbTipPos.z + 0.008);
+        const thumbNail = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), nailMat);
+        thumbNail.scale.set(0.45, 1.12, 0.85);
+        thumbNail.position.set(thumbTipPos.x + 0.018, thumbTipPos.y - 0.004, thumbTipPos.z + 0.006);
         pivot.add(thumbNail);
 
-        // 4. Cổ tay thuôn dẹt khớp liền mạch với lòng bàn tay và cổ tay áo
+        // 4. CỔ TAY & CỔ TAY ÁO NỐI LIỀN MẠCH PHÍA BÊN PHẢI
         const wrist = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.088, 0.098, 0.16, 24),
+          new THREE.CylinderGeometry(0.078, 0.088, 0.14, 24),
           skinMat
         );
         wrist.rotation.z = Math.PI / 2;
-        wrist.scale.set(1, 1.14, 0.66);
-        wrist.position.set(0.38, 0.0, 0.012);
+        wrist.scale.set(1, 1.25, 0.64);
+        wrist.position.set(0.31, -0.004, -0.004);
         pivot.add(wrist);
 
         const cuffBand = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.106, 0.108, 0.045, 24),
+          new THREE.CylinderGeometry(0.096, 0.098, 0.042, 24),
           cuffBandMat
         );
         cuffBand.rotation.z = Math.PI / 2;
-        cuffBand.scale.set(1, 1.18, 0.70);
-        cuffBand.position.set(0.465, 0.0, 0.012);
+        cuffBand.scale.set(1, 1.26, 0.68);
+        cuffBand.position.set(0.385, -0.004, -0.004);
         pivot.add(cuffBand);
 
         const sleeve = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.112, 0.120, 0.24, 24),
+          new THREE.CylinderGeometry(0.102, 0.110, 0.22, 24),
           sleeveMat
         );
         sleeve.rotation.z = Math.PI / 2;
-        sleeve.scale.set(1, 1.18, 0.70);
-        sleeve.position.set(0.60, 0.0, 0.012);
+        sleeve.scale.set(1, 1.26, 0.68);
+        sleeve.position.set(0.51, -0.004, -0.004);
         pivot.add(sleeve);
 
-        // 5. Đặt tâm khoang nắm trùng trục dây dẫn (0, 1.24, 0) và tự động lật 180° khi đảo chiều I
+        // 5. Đặt tâm nắm tay trùng trục dây dẫn (0, 1.24, 0) và tự động lật 180° khi đảo chiều I
         pivot.position.set(0, 1.24, 0);
         pivot.rotation.x = isUp ? 0 : Math.PI;
 
