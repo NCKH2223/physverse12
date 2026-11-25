@@ -3108,7 +3108,6 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
   const attachHandToWire = (model) => {
           const handClone = model.clone();
 
-          // Tông màu da trung tính trầm, chống lóa cam dưới ánh đèn mạnh của cảnh 3D
           const skinMat = new THREE.MeshStandardMaterial({
             color: 0x946049,
             roughness: 0.92,
@@ -3136,16 +3135,16 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Dựng thẳng bàn tay (hết ngửa) để lỗ khoét dọc theo 4 ngón song song với dây dẫn
+          // 2. Dựng thẳng bàn tay, cổ tay nằm ngang, ngón cái thẳng đứng song song dây dẫn
           const handOrient = new THREE.Group();
           handOrient.add(handClone);
-          handOrient.rotation.set(0.14, Math.PI, 0.24);
+          handOrient.rotation.set(0.02, Math.PI, 0.02);
 
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handOrient);
 
-          // 3. Đưa tâm lỗ khoét giữa 4 ngón tay và lòng bàn tay trùng khít trục dây (x = 0, z = 0)
-          alignedGroup.position.set(0.255, 0, 0.025);
+          // 3. Đưa tâm lỗ khoét của 4 ngón tay ôm trọn trục dây dẫn (x = 0, z = 0)
+          alignedGroup.position.set(0.37, 0, 0.03);
 
           // 4. Tâm xoay đặt tại trục dây: I lên -> ngón cái lên; I xuống -> lật úp 180° quanh trục X
           const pivot = new THREE.Group();
