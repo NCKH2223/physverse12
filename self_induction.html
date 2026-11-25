@@ -3101,29 +3101,29 @@ function updateRightHandVisual() {
         overlayCard.classList.add('hidden');
       }
 
- // Dựng mô hình bàn tay phải 3D hữu cơ liền khối (tỉ lệ giải phẫu tự nhiên, không góc cạnh)
+// Dựng mô hình bàn tay phải 3D hữu cơ liền khối (tỉ lệ lớn rõ nét, kín khớp, ngón cái tự nhiên)
       if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
         const pivot = new THREE.Group();
 
-        // Vật liệu da hữu cơ có chuyển sắc tự nhiên (vertexColors) & độ bóng mềm dưới ánh đèn 3D
-        const skinMat = new THREE.MeshPhysicalMaterial({
+        // Vật liệu da đồng nhất giữa mu bàn tay và các ngón để chuyển tiếp mượt không lộ vết ghép
+        const palmSkinMat = new THREE.MeshPhysicalMaterial({
           vertexColors: true,
-          roughness: 0.68,
+          roughness: 0.66,
           metalness: 0.0,
-          clearcoat: 0.08,
+          clearcoat: 0.06,
           clearcoatRoughness: 0.72
         });
         const fingerSkinMat = new THREE.MeshPhysicalMaterial({
-          color: 0xd18a66,
+          color: 0xd08965,
           roughness: 0.66,
           metalness: 0.0,
-          clearcoat: 0.08,
-          clearcoatRoughness: 0.70
+          clearcoat: 0.06,
+          clearcoatRoughness: 0.72
         });
         const nailMat = new THREE.MeshStandardMaterial({
-          color: 0xe6beaa,
-          roughness: 0.38,
+          color: 0xe8c3b0,
+          roughness: 0.36,
           metalness: 0.02
         });
         const sleeveMat = new THREE.MeshStandardMaterial({
@@ -3142,25 +3142,26 @@ function updateRightHandVisual() {
           return t * t * (3 - 2 * t);
         };
 
-        // 1. DỰNG LIỀN KHỐI: CỔ TAY -> GÒ NGÓN CÁI -> LÒNG & MU BÀN TAY -> KHỚP NGÓN TAY
+        // 1. KHỐI LIỀN MẠCH: CỔ TAY -> LÒNG & MU BÀN TAY -> VÒM KHỚP TRÙM KÍN GỐC 4 NGÓN TAY
         const palmCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0.42, -0.022, -0.005),  // Trong cổ tay áo
-          new THREE.Vector3(0.28, -0.016, -0.008),  // Cổ tay thon tự nhiên
-          new THREE.Vector3(0.165, -0.008, -0.028), // Gốc bàn tay
-          new THREE.Vector3(0.055, -0.002, -0.086), // Lòng bàn tay ôm sau dây dẫn (cách tâm dây > 0.064)
-          new THREE.Vector3(-0.056, 0.002, -0.076), // Vòm mu bàn tay uốn quanh dây
-          new THREE.Vector3(-0.096, 0.004, 0.016)   // Hàng khớp gốc 4 ngón tay bên trái dây
+          new THREE.Vector3(0.76, -0.042, -0.010),  // Trong cổ tay áo
+          new THREE.Vector3(0.52, -0.030, -0.012),  // Cổ tay
+          new THREE.Vector3(0.30, -0.014, -0.036),  // Gốc bàn tay
+          new THREE.Vector3(0.115, 0.000, -0.106),  // Lòng bàn tay ôm sau dây dẫn
+          new THREE.Vector3(-0.075, 0.005, -0.096), // Vòm mu bàn tay uốn quanh dây
+          new THREE.Vector3(-0.130, 0.006, -0.008), // Hàng khớp xương (knuckles) bên trái dây
+          new THREE.Vector3(-0.124, 0.006, 0.048)   // Bo trùm kín vào gốc 4 ngón tay (xóa hở khớp)
         ]);
 
-        const uSegs = 46;
-        const vSegs = 36;
+        const uSegs = 52;
+        const vSegs = 38;
         const positions = [];
         const colors = [];
         const indices = [];
         const upVec = new THREE.Vector3(0, 1, 0);
 
-        const colBase = new THREE.Color(0xd28b67);   // Màu da chính trên mu bàn tay
-        const colWarm = new THREE.Color(0xb86b49);   // Sắc ấm tự nhiên ở lòng bàn tay, cổ tay & kẽ khớp
+        const colBase = new THREE.Color(0xd08965);
+        const colWarm = new THREE.Color(0xb66947);
         const tmpColor = new THREE.Color();
 
         for (let i = 0; i <= uSegs; i++) {
@@ -3170,38 +3171,35 @@ function updateRightHandVisual() {
           const dorsalOut = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
           const radialUp = new THREE.Vector3().crossVectors(dorsalOut, tangent).normalize();
 
-          // Bề ngang bàn tay: thon ở cổ tay (0.064), nở mềm qua lòng bàn tay (0.106), bo tròn ở khớp ngón
-          const palmWiden = smoothstep(0.18, 0.68, u);
-          const knuckleTaper = 1.0 - 0.14 * smoothstep(0.84, 1.0, u);
-          const tipCapScale = u > 0.94 ? Math.sqrt(Math.max(0.02, 1.0 - Math.pow((u - 0.94) / 0.06, 2))) : 1.0;
-          const baseRadiusY = (0.064 + 0.042 * palmWiden) * knuckleTaper * tipCapScale;
+          // Bề ngang bàn tay lớn rõ (cổ tay 0.112 -> lòng bàn tay 0.194)
+          const palmWiden = smoothstep(0.16, 0.65, u);
+          const knuckleTaper = 1.0 - 0.08 * smoothstep(0.86, 1.0, u);
+          const tipCapScale = u > 0.94 ? Math.sqrt(Math.max(0.04, 1.0 - Math.pow((u - 0.94) / 0.06, 2))) : 1.0;
+          const baseRadiusY = (0.112 + 0.082 * palmWiden) * knuckleTaper * tipCapScale;
 
-          // Độ dày trước-sau: oval mềm ở cổ tay, thon gọn ở lòng bàn tay để ôm dây tự nhiên
-          const baseRadiusZ = (0.042 - 0.011 * smoothstep(0.20, 0.75, u)) * tipCapScale;
+          // Độ dày trước-sau ôm sát vỏ dây dẫn (r = 0.06) mà không đâm xuyên
+          const baseRadiusZ = (0.072 - 0.022 * smoothstep(0.20, 0.72, u)) * tipCapScale;
 
           for (let j = 0; j <= vSegs; j++) {
             const theta = (j / vSegs) * Math.PI * 2;
-            const cosT = Math.cos(theta); // > 0: mu bàn tay, < 0: lòng bàn tay
-            const sinT = Math.sin(theta); // > 0: phía ngón trỏ/cái, < 0: phía ngón út
+            const cosT = Math.cos(theta);
+            const sinT = Math.sin(theta);
 
-            // Độ vát giải phẫu: cạnh ngón út hơi thấp và thuôn mềm hơn cạnh ngón trỏ
-            const ulnarDrop = (sinT < 0 ? -0.010 * Math.abs(sinT) * palmWiden : 0.004 * sinT * palmWiden) * tipCapScale;
+            const ulnarDrop = (sinT < 0 ? -0.016 * Math.abs(sinT) * palmWiden : 0.006 * sinT * palmWiden) * tipCapScale;
+            const rDorsal = baseRadiusZ * (cosT >= 0 ? 1.08 : 0.82);
 
-            // Độ dày mu bàn tay và lòng bàn tay
-            let rDorsal = baseRadiusZ * (cosT >= 0 ? 1.05 : 0.84);
-
-            // Gò ngón cái (Thenar) hòa mượt trực tiếp vào bề mặt da, không ghép khối rời
-            const thenarBulge = 0.024
-              * Math.exp(-Math.pow((u - 0.42) / 0.14, 2))
-              * Math.exp(-Math.pow((sinT - 0.48) / 0.42, 2))
+            // Gò ngón cái nổi tự nhiên ở mặt lòng bàn tay
+            const thenarBulge = 0.042
+              * Math.exp(-Math.pow((u - 0.42) / 0.15, 2))
+              * Math.exp(-Math.pow((sinT - 0.46) / 0.44, 2))
               * Math.max(0, -cosT + 0.25);
 
-            // 4 gồ khớp xương nhẹ trên mu bàn tay (knuckles) tại u ≈ 0.90
+            // 4 gồ khớp xương nhẹ trên mu bàn tay
             let knuckleBump = 0;
-            if (cosT > 0.2 && u > 0.78 && u < 0.98) {
-              const uKnuckle = Math.exp(-Math.pow((u - 0.90) / 0.055, 2));
+            if (cosT > 0.15 && u > 0.76 && u < 0.96) {
+              const uKnuckle = Math.exp(-Math.pow((u - 0.86) / 0.055, 2));
               const wave = Math.pow(Math.max(0, Math.cos((sinT - 0.02) * Math.PI * 2.1)), 2);
-              knuckleBump = 0.0065 * uKnuckle * wave * cosT;
+              knuckleBump = 0.011 * uKnuckle * wave * cosT;
             }
 
             const dispB = cosT * (rDorsal + knuckleBump) - (cosT < 0 ? thenarBulge : 0);
@@ -3212,9 +3210,8 @@ function updateRightHandVisual() {
             const vz = center.z + dorsalOut.z * dispB + radialUp.z * dispU;
             positions.push(vx, vy, vz);
 
-            // Chuyển sắc tự nhiên: lòng bàn tay và kẽ khớp hơi ấm hơn mu bàn tay
-            const shadeMix = Math.min(1, Math.max(0, (-cosT * 0.45 + 0.35) + (1 - u) * 0.25));
-            tmpColor.copy(colBase).lerp(colWarm, shadeMix * 0.65);
+            const shadeMix = Math.min(1, Math.max(0, (-cosT * 0.40 + 0.30) + (1 - u) * 0.20));
+            tmpColor.copy(colBase).lerp(colWarm, shadeMix * 0.55);
             colors.push(tmpColor.r, tmpColor.g, tmpColor.b);
           }
         }
@@ -3236,10 +3233,10 @@ function updateRightHandVisual() {
         handMeshGeom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         handMeshGeom.setIndex(indices);
         handMeshGeom.computeVertexNormals();
-        pivot.add(new THREE.Mesh(handMeshGeom, skinMat));
+        pivot.add(new THREE.Mesh(handMeshGeom, palmSkinMat));
 
-        // Hàm tạo ngón tay thuôn mềm mại kèm khớp đốt tự nhiên
-        const createOrganicFinger = (points, rBase, rTip, tubularSegs = 28, radialSegs = 16) => {
+        // Hàm tạo ngón tay thuôn mềm mại kèm khớp đốt
+        const createOrganicFinger = (points, rBase, rTip, tubularSegs = 28, radialSegs = 18) => {
           const curve = new THREE.CatmullRomCurve3(points);
           const geom = new THREE.TubeGeometry(curve, tubularSegs, 1.0, radialSegs, false);
           const pos = geom.attributes.position;
@@ -3248,8 +3245,8 @@ function updateRightHandVisual() {
           for (let i = 0; i <= tubularSegs; i++) {
             const u = i / tubularSegs;
             const centerPt = curve.getPointAt(u);
-            const joint1 = 0.05 * rBase * Math.exp(-Math.pow((u - 0.36) / 0.09, 2));
-            const joint2 = 0.035 * rBase * Math.exp(-Math.pow((u - 0.68) / 0.08, 2));
+            const joint1 = 0.05 * rBase * Math.exp(-Math.pow((u - 0.38) / 0.09, 2));
+            const joint2 = 0.035 * rBase * Math.exp(-Math.pow((u - 0.70) / 0.08, 2));
             const tipRound = u > 0.90 ? Math.sqrt(Math.max(0.04, 1.0 - Math.pow((u - 0.90) / 0.10, 2))) : 1.0;
             const rCurr = (rBase + (rTip - rBase) * u + joint1 + joint2) * tipRound;
 
@@ -3263,70 +3260,78 @@ function updateRightHandVisual() {
           return new THREE.Mesh(geom, fingerSkinMat);
         };
 
-        // 2. BỐN NGÓN TAY KHUM TỰ NHIÊN (nghiêng nhẹ theo độ dốc nắm tay thật, không đâm xuyên dây)
+        // 2. BỐN NGÓN TAY CẮM SÂU VÀO HÀNG KHỚP MU BÀN TAY (KHÔNG HỞ KHE) VÀ ÔM TRỌN MẶT TRƯỚC DÂY
         const fingers = [
-          { y0: 0.082, rBase: 0.0285, rTip: 0.0225, reachX: 0.072 }, // Ngón trỏ
-          { y0: 0.025, rBase: 0.0300, rTip: 0.0235, reachX: 0.076 }, // Ngón giữa
-          { y0: -0.032, rBase: 0.0275, rTip: 0.0215, reachX: 0.070 }, // Ngón áp út
-          { y0: -0.085, rBase: 0.0235, rTip: 0.0185, reachX: 0.060 }  // Ngón út
+          { y0: 0.146, rBase: 0.048, rTip: 0.037, reachX: 0.106 }, // Ngón trỏ
+          { y0: 0.048, rBase: 0.050, rTip: 0.039, reachX: 0.112 }, // Ngón giữa
+          { y0: -0.048, rBase: 0.046, rTip: 0.036, reachX: 0.104 }, // Ngón áp út
+          { y0: -0.138, rBase: 0.040, rTip: 0.031, reachX: 0.090 }  // Ngón út
         ];
 
         fingers.forEach((f) => {
           const pts = [
-            new THREE.Vector3(-0.088, f.y0, 0.014),
-            new THREE.Vector3(-0.074, f.y0 - 0.004, 0.068),
-            new THREE.Vector3(-0.015, f.y0 - 0.008, 0.092),
-            new THREE.Vector3(0.044, f.y0 - 0.011, 0.082),
-            new THREE.Vector3(f.reachX, f.y0 - 0.013, 0.050)
+            new THREE.Vector3(-0.116, f.y0, 0.026),            // Nằm sâu bên trong vòm khớp mu bàn tay
+            new THREE.Vector3(-0.105, f.y0 - 0.006, 0.094),    // Khớp gốc uốn ra mặt trước
+            new THREE.Vector3(-0.020, f.y0 - 0.012, 0.118),    // Đốt giữa ôm ngang trước dây dẫn
+            new THREE.Vector3(0.062, f.y0 - 0.016, 0.104),     // Đốt cuối
+            new THREE.Vector3(f.reachX, f.y0 - 0.018, 0.066)   // Đầu ngón khép nhẹ vào lòng bàn tay
           ];
           pivot.add(createOrganicFinger(pts, f.rBase, f.rTip));
 
-          // Móng tay mỏng ôm sát mặt ngoài đốt cuối
-          const nailPos = new THREE.Vector3(0.038, f.y0 - 0.011, 0.082 + f.rTip * 0.78);
+          // Móng tay mỏng ôm sát đốt đầu ngón
           const nail = new THREE.Mesh(new THREE.SphereGeometry(f.rTip * 0.62, 12, 10), nailMat);
-          nail.scale.set(0.95, 0.65, 0.32);
-          nail.position.copy(nailPos);
+          nail.scale.set(0.95, 0.65, 0.30);
+          nail.position.set(0.056, f.y0 - 0.016, 0.104 + f.rTip * 0.80);
           nail.rotation.y = 0.35;
           pivot.add(nail);
         });
 
-        // 3. NGÓN CÁI MỌC MỀM TỪ GÒ NGÓN CÁI, UỐN CONG TỰ NHIÊN DỌC THEO CHIỀU DÒNG ĐIỆN I
+        // 3. NGÓN CÁI & NẾP DA HỔ KHẨU NỐI LIỀN MỀM MẠI VỚI LÒNG BÀN TAY
         const thumbPts = [
-          new THREE.Vector3(0.142, -0.024, 0.030), // Ẩn sâu trong gò ngón cái để nối liền không vết ghép
-          new THREE.Vector3(0.114, 0.026, 0.054),
-          new THREE.Vector3(0.095, 0.088, 0.050),
-          new THREE.Vector3(0.090, 0.148, 0.040),
-          new THREE.Vector3(0.094, 0.202, 0.030)
+          new THREE.Vector3(0.215, -0.045, 0.022), // Gốc ngón cái nối liền từ gò bàn tay
+          new THREE.Vector3(0.165, 0.025, 0.068),  // Phần bắp ngón cái vươn ra trước-phải dây
+          new THREE.Vector3(0.126, 0.115, 0.082),  // Khớp giữa ngón cái (luôn lộ rõ trước mặt dây)
+          new THREE.Vector3(0.110, 0.215, 0.076),  // Đốt trên dựng song song dây dẫn
+          new THREE.Vector3(0.115, 0.305, 0.066),  // Gần đầu ngón hơi ngả nhẹ tự nhiên
+          new THREE.Vector3(0.122, 0.382, 0.056)   // Đầu ngón cái bo tròn
         ];
-        pivot.add(createOrganicFinger(thumbPts, 0.035, 0.0245, 24, 16));
+        pivot.add(createOrganicFinger(thumbPts, 0.074, 0.037, 30, 18));
 
-        const thumbNail = new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 10), nailMat);
-        thumbNail.scale.set(0.35, 1.15, 0.78);
-        thumbNail.position.set(0.110, 0.184, 0.034);
-        thumbNail.rotation.z = -0.08;
+        // Nếp da hổ khẩu (nối mềm kẽ giữa ngón cái và ngón trỏ)
+        const webPts = [
+          new THREE.Vector3(0.165, 0.020, 0.052),
+          new THREE.Vector3(0.120, 0.085, 0.062),
+          new THREE.Vector3(0.075, 0.135, 0.050)
+        ];
+        pivot.add(createOrganicFinger(webPts, 0.046, 0.036, 16, 14));
+
+        const thumbNail = new THREE.Mesh(new THREE.SphereGeometry(0.024, 12, 10), nailMat);
+        thumbNail.scale.set(0.32, 1.15, 0.78);
+        thumbNail.position.set(0.145, 0.352, 0.062);
+        thumbNail.rotation.set(0.06, 0.18, -0.10);
         pivot.add(thumbNail);
 
-        // 4. CỔ TAY ÁO BẦU DỤC MỀM ÔM TRỌN CỔ TAY PHÍA BÊN PHẢI
+        // 4. CỔ TAY ÁO BẦU DỤC LỚN RÕ NÉT ÔM TRỌN CỔ TAY PHÍA BÊN PHẢI
         const cuffBand = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.084, 0.087, 0.042, 28),
+          new THREE.CylinderGeometry(0.148, 0.152, 0.070, 32),
           cuffMat
         );
         cuffBand.rotation.z = Math.PI / 2;
-        cuffBand.scale.set(1, 1.18, 0.72);
-        cuffBand.position.set(0.34, -0.019, -0.006);
+        cuffBand.scale.set(1, 1.22, 0.72);
+        cuffBand.position.set(0.60, -0.034, -0.011);
         pivot.add(cuffBand);
 
         const sleeve = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.090, 0.098, 0.22, 28),
+          new THREE.CylinderGeometry(0.158, 0.172, 0.36, 32),
           sleeveMat
         );
         sleeve.rotation.z = Math.PI / 2;
-        sleeve.scale.set(1, 1.18, 0.72);
-        sleeve.position.set(0.46, -0.022, -0.005);
+        sleeve.scale.set(1, 1.22, 0.72);
+        sleeve.position.set(0.81, -0.042, -0.010);
         pivot.add(sleeve);
 
-        // 5. Đặt tâm nắm tay trùng trục dây dẫn (0, 1.24, 0) và tự động lật 180° khi đảo chiều I
-        pivot.position.set(0, 1.24, 0);
+        // 5. Đặt tâm nắm tay trùng trục dây dẫn, tự động căn cao độ tránh mũi tên vàng khi đảo chiều I
+        pivot.position.set(0, isUp ? 1.18 : 1.32, 0);
         pivot.rotation.x = isUp ? 0 : Math.PI;
 
         rightHandGroup.add(pivot);
