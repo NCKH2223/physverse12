@@ -3105,24 +3105,15 @@ function updateRightHandVisual() {
 if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
 
-   const attachHandToWire = (model) => {
+  const attachHandToWire = (model) => {
           const handClone = model.clone();
 
-          // Bật cắt cục bộ để gọt phẳng phần viền cổ tay loe thừa của file .glb
-          if (typeof renderer !== 'undefined') {
-            renderer.localClippingEnabled = true;
-          }
-
-          // Mặt phẳng cắt trong hệ tọa độ thế giới tại mép cổ tay (world x = 0.68)
-          const wristClipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0.68);
-
+          // Tông màu da ấm tự nhiên, giảm lóa sáng để nổi rõ khối 4 ngón tay
           const skinMat = new THREE.MeshStandardMaterial({
-            color: 0xb86f4c,
-            roughness: 0.85,
+            color: 0x9c5a3c,
+            roughness: 0.88,
             metalness: 0.0,
-            side: THREE.DoubleSide,
-            clippingPlanes: [wristClipPlane],
-            clipShadows: true
+            side: THREE.DoubleSide
           });
 
           handClone.traverse((child) => {
@@ -3145,33 +3136,18 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Xoay bàn tay đứng thẳng dọc theo dây dẫn (ngón cái thẳng đứng, cổ tay nằm ngang)
+          // 2. Dựng thẳng bàn tay, khắc phục độ ngửa về trước để ngón cái song song dây dẫn
           const handOrient = new THREE.Group();
           handOrient.add(handClone);
-          handOrient.rotation.set(0, Math.PI, 0.24);
+          handOrient.rotation.set(-0.12, Math.PI, -0.04);
 
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handOrient);
 
-          // Nắp bịt kín mặt cắt cổ tay đồng màu da, nằm khít tại mặt phẳng cắt (world x = 0.678)
-          const capMat = new THREE.MeshStandardMaterial({
-            color: 0xa8603e,
-            roughness: 0.88,
-            metalness: 0.0
-          });
-          const wristCap = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.145, 0.145, 0.015, 28),
-            capMat
-          );
-          wristCap.rotation.z = Math.PI / 2;
-          wristCap.scale.set(1, 1.18, 0.68);
-          wristCap.position.set(0.338, 0.01, 0.01);
-          alignedGroup.add(wristCap);
+          // 3. Căn rãnh 4 ngón tay ôm trọn mặt trước dây dẫn, không bị dây đâm xuyên
+          alignedGroup.position.set(0.365, 0, 0.095);
 
-          // 3. Căn khe 4 ngón tay ôm trọn mặt trước dây dẫn, không bị dây đâm chéo
-          alignedGroup.position.set(0.34, 0, 0.055);
-
-          // 4. Tâm xoay đặt tại trục dây: I lên -> ngón cái lên; I xuống -> lật úp 180° quanh trục X
+          // 4. Tâm xoay đặt tại trục dây: I lên -> ngón cái hướng lên; I xuống -> lật úp 180° quanh trục X
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
           pivot.position.set(0, 1.24, 0);
