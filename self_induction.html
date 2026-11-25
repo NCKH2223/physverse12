@@ -3105,59 +3105,37 @@ function updateRightHandVisual() {
 if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
 
-     const attachHandToWire = (model) => {
-          const handClone = model.clone();
-
-          handClone.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                color: 0xc98256,
-                roughness: 0.62,
-                metalness: 0.04
-              });
-            }
+        const attachHandSprite = (tex) => {
+          const spriteMat = new THREE.SpriteMaterial({
+            map: tex,
+            transparent: true,
+            depthTest: false
           });
+          const handSprite = new THREE.Sprite(spriteMat);
 
-          // 1. Tự động đo kích thước và căn tâm mô hình về chuẩn vừa khớp dây dẫn
-          const box = new THREE.Box3().setFromObject(handClone);
-          const size = box.getSize(new THREE.Vector3());
-          const center = box.getCenter(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetSize = 1.25;
-          const scaleFactor = targetSize / maxDim;
+          // Căn vị trí bàn tay ôm đúng vào sợi dây dẫn tại trục (0, 1.24, 0)
+          handSprite.position.set(0.36, 1.24, 0.05);
 
-          handClone.scale.setScalar(scaleFactor);
-          handClone.position.sub(center.multiplyScalar(scaleFactor));
+          // Tự động lật chiều ngón cái hướng lên (I > 0) hoặc hướng xuống (I < 0)
+          const size = 1.65;
+          handSprite.scale.set(size, isUp ? size : -size, 1);
 
-          // 2. Căn lỗ khoét của bàn tay vào đúng trục dây dẫn (x = 0, z = 0)
-          const alignedGroup = new THREE.Group();
-          alignedGroup.add(handClone);
-          alignedGroup.rotation.set(0, 0, 0);
-          alignedGroup.position.set(0.36, 0, 0.02);
-
-          // 3. Nhóm bọc ngoài lật 180° khi đảo chiều dòng điện I lên / I xuống
-          const pivot = new THREE.Group();
-          pivot.add(alignedGroup);
-          pivot.position.set(0, 1.24, 0);
-          pivot.rotation.x = isUp ? 0 : Math.PI;
-
-          rightHandGroup.add(pivot);
+          rightHandGroup.add(handSprite);
         };
-        if (window._cachedRightHandGLB) {
-          attachHandToWire(window._cachedRightHandGLB);
+
+        if (window._cachedRightHandTex) {
+          attachHandSprite(window._cachedRightHandTex);
         } else {
-          const loader = new THREE.GLTFLoader();
-          loader.load(
-            'right_hand.glb',
-            (gltf) => {
-              window._cachedRightHandGLB = gltf.scene;
-              // Kiểm tra lại trạng thái hiện tại trước khi gắn
+          new THREE.TextureLoader().load(
+            'right_hand.png',
+            (tex) => {
+              window._cachedRightHandTex = tex;
               if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
-                attachHandToWire(window._cachedRightHandGLB);
+                attachHandSprite(tex);
               }
             },
             undefined,
-            (err) => console.warn('Không tải được right_hand.glb (kiểm tra tên file hoặc lỗi CORS khi mở local):', err)
+            (err) => console.warn('Không tải được right_hand.png:', err)
           );
         }
       }
