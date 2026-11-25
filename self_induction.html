@@ -3108,10 +3108,10 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
   const attachHandToWire = (model) => {
           const handClone = model.clone();
 
-          // Tông màu da ấm tự nhiên, giảm lóa sáng để nổi rõ khối 4 ngón tay
+          // Tông màu da trung tính trầm, chống lóa cam dưới ánh đèn mạnh của cảnh 3D
           const skinMat = new THREE.MeshStandardMaterial({
-            color: 0x9c5a3c,
-            roughness: 0.88,
+            color: 0x946049,
+            roughness: 0.92,
             metalness: 0.0,
             side: THREE.DoubleSide
           });
@@ -3130,24 +3130,24 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetSize = 1.16;
+          const targetSize = 1.18;
           const scaleFactor = targetSize / maxDim;
 
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Dựng thẳng bàn tay, khắc phục độ ngửa về trước để ngón cái song song dây dẫn
+          // 2. Dựng thẳng bàn tay (hết ngửa) để lỗ khoét dọc theo 4 ngón song song với dây dẫn
           const handOrient = new THREE.Group();
           handOrient.add(handClone);
-          handOrient.rotation.set(-0.12, Math.PI, -0.04);
+          handOrient.rotation.set(0.14, Math.PI, 0.24);
 
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handOrient);
 
-          // 3. Căn rãnh 4 ngón tay ôm trọn mặt trước dây dẫn, không bị dây đâm xuyên
-          alignedGroup.position.set(0.365, 0, 0.095);
+          // 3. Đưa tâm lỗ khoét giữa 4 ngón tay và lòng bàn tay trùng khít trục dây (x = 0, z = 0)
+          alignedGroup.position.set(0.255, 0, 0.025);
 
-          // 4. Tâm xoay đặt tại trục dây: I lên -> ngón cái hướng lên; I xuống -> lật úp 180° quanh trục X
+          // 4. Tâm xoay đặt tại trục dây: I lên -> ngón cái lên; I xuống -> lật úp 180° quanh trục X
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
           pivot.position.set(0, 1.24, 0);
