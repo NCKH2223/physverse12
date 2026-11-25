@@ -3108,16 +3108,20 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
     const attachHandToWire = (model) => {
           const handClone = model.clone();
 
-          // Tông màu da ấm tự nhiên, chống lóa trắng dưới ánh đèn mạnh của cảnh 3D
           const skinMat = new THREE.MeshStandardMaterial({
-            color: 0xb56b45,
-            roughness: 0.78,
+            color: 0xc47d58,
+            roughness: 0.72,
             metalness: 0.0,
             side: THREE.DoubleSide
           });
           const sleeveMat = new THREE.MeshStandardMaterial({
             color: 0x1e3a5f,
-            roughness: 0.72,
+            roughness: 0.68,
+            metalness: 0.06
+          });
+          const cuffRimMat = new THREE.MeshStandardMaterial({
+            color: 0x152944,
+            roughness: 0.75,
             metalness: 0.05
           });
 
@@ -3141,35 +3145,39 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Xoay bàn tay để cẳng tay nằm bên phải (+X), 4 ngón tay ôm mặt trước dây (+Z)
+          // 2. Xoay mặt bàn tay + dựng thẳng ngón cái và rãnh nắm song song với dây dẫn
           const handOrient = new THREE.Group();
           handOrient.add(handClone);
-          handOrient.rotation.y = Math.PI;
+          handOrient.rotation.set(0, Math.PI, -0.14);
 
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handOrient);
 
-          // Nối thêm đoạn cẳng tay và cổ tay áo gọn gàng phía bên phải
-          const forearm = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.115, 0.132, 0.34, 24),
-            skinMat
-          );
-          forearm.rotation.z = Math.PI / 2;
-          forearm.position.set(0.56, -0.04, 0.0);
-          alignedGroup.add(forearm);
-
-          const sleeve = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.145, 0.155, 0.38, 24),
+          // 3. Ống tay áo bầu dục trùm khít lên phần cổ tay (không bị hở mép cắt phía trên/dưới)
+          const sleeveGroup = new THREE.Group();
+          const sleeveBody = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.168, 0.178, 0.46, 28),
             sleeveMat
           );
-          sleeve.rotation.z = Math.PI / 2;
-          sleeve.position.set(0.88, -0.04, 0.0);
-          alignedGroup.add(sleeve);
+          sleeveBody.rotation.z = Math.PI / 2;
+          sleeveGroup.add(sleeveBody);
+
+          const cuffRim = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.174, 0.174, 0.05, 28),
+            cuffRimMat
+          );
+          cuffRim.rotation.z = Math.PI / 2;
+          cuffRim.position.x = -0.21;
+          sleeveGroup.add(cuffRim);
+
+          sleeveGroup.scale.set(1, 1.24, 0.72);
+          sleeveGroup.position.set(0.64, -0.005, 0.0);
+          alignedGroup.add(sleeveGroup);
 
           // Đưa khe 4 ngón tay ôm đúng trục dây dẫn (x = 0, z = 0)
-          alignedGroup.position.set(0.38, 0, 0.03);
+          alignedGroup.position.set(0.325, 0, 0.025);
 
-          // 3. Tâm xoay tại trục dây: I lên -> ngón cái lên (ngón tay vòng trước); I xuống -> ngón cái xuống (ngón tay vòng ngược lại)
+          // 4. Tâm xoay đặt tại trục dây: tự động lật ngược khi đảo chiều dòng điện I
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
           pivot.position.set(0, 1.24, 0);
