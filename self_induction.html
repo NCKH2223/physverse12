@@ -3105,46 +3105,75 @@ function updateRightHandVisual() {
 if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
 
-     const attachHandToWire = (model) => {
+    const attachHandToWire = (model) => {
           const handClone = model.clone();
+
+          // Tông màu da ấm tự nhiên, chống lóa trắng dưới ánh đèn mạnh của cảnh 3D
+          const skinMat = new THREE.MeshStandardMaterial({
+            color: 0xb56b45,
+            roughness: 0.78,
+            metalness: 0.0,
+            side: THREE.DoubleSide
+          });
+          const sleeveMat = new THREE.MeshStandardMaterial({
+            color: 0x1e3a5f,
+            roughness: 0.72,
+            metalness: 0.05
+          });
 
           handClone.traverse((child) => {
             if (child.isMesh) {
               if (child.geometry) {
                 child.geometry.computeVertexNormals();
               }
-              // Bỏ texture màu đỏ lỗi của AI, thay bằng màu da tự nhiên mịn và giữ nguyên khối 3D
-              child.material = new THREE.MeshStandardMaterial({
-                color: 0xdc9872,
-                roughness: 0.62,
-                metalness: 0.02,
-                side: THREE.DoubleSide
-              });
+              child.material = skinMat;
             }
           });
 
-          // 1. Chuẩn hóa kích thước và đưa tâm hình học về gốc tọa độ
+          // 1. Chuẩn hóa kích thước bàn tay vừa tỉ lệ dây dẫn
           const box = new THREE.Box3().setFromObject(handClone);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetSize = 1.25;
+          const targetSize = 1.18;
           const scaleFactor = targetSize / maxDim;
 
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Dịch bàn tay sang phải để khe 4 ngón tay ôm đúng trục dây dẫn (x = 0, z = 0)
-          const alignedGroup = new THREE.Group();
-          alignedGroup.add(handClone);
-          alignedGroup.rotation.set(0, 0, 0);
-          alignedGroup.position.set(0.50, 0, -0.02);
+          // 2. Xoay bàn tay để cẳng tay nằm bên phải (+X), 4 ngón tay ôm mặt trước dây (+Z)
+          const handOrient = new THREE.Group();
+          handOrient.add(handClone);
+          handOrient.rotation.y = Math.PI;
 
-          // 3. Xoay 180° quanh trục Z khi đảo chiều I: ngón cái chỉ xuống và 4 ngón vẫn ôm mặt trước dây
+          const alignedGroup = new THREE.Group();
+          alignedGroup.add(handOrient);
+
+          // Nối thêm đoạn cẳng tay và cổ tay áo gọn gàng phía bên phải
+          const forearm = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.115, 0.132, 0.34, 24),
+            skinMat
+          );
+          forearm.rotation.z = Math.PI / 2;
+          forearm.position.set(0.56, -0.04, 0.0);
+          alignedGroup.add(forearm);
+
+          const sleeve = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.145, 0.155, 0.38, 24),
+            sleeveMat
+          );
+          sleeve.rotation.z = Math.PI / 2;
+          sleeve.position.set(0.88, -0.04, 0.0);
+          alignedGroup.add(sleeve);
+
+          // Đưa khe 4 ngón tay ôm đúng trục dây dẫn (x = 0, z = 0)
+          alignedGroup.position.set(0.38, 0, 0.03);
+
+          // 3. Tâm xoay tại trục dây: I lên -> ngón cái lên (ngón tay vòng trước); I xuống -> ngón cái xuống (ngón tay vòng ngược lại)
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
           pivot.position.set(0, 1.24, 0);
-          pivot.rotation.z = isUp ? 0 : Math.PI;
+          pivot.rotation.x = isUp ? 0 : Math.PI;
 
           rightHandGroup.add(pivot);
         };
