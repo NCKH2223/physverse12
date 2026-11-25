@@ -3105,35 +3105,25 @@ function updateRightHandVisual() {
 if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
         const isUp = s > 0;
 
-        const attachHandToWire = (model) => {
+     const attachHandToWire = (model) => {
           const handClone = model.clone();
 
           handClone.traverse((child) => {
             if (child.isMesh) {
-              // Tính lại pháp tuyến bề mặt để không bao giờ bị lỗi đen mô hình
               if (child.geometry) {
                 child.geometry.computeVertexNormals();
               }
-              if (child.material) {
-                child.material.side = THREE.DoubleSide;
-                if (child.material.map) {
-                  // Giữ nguyên texture da thật từ file .glb và chỉnh độ phản sáng tự nhiên
-                  child.material.metalness = 0.05;
-                  child.material.roughness = 0.65;
-                  child.material.needsUpdate = true;
-                } else {
-                  child.material = new THREE.MeshStandardMaterial({
-                    color: 0xe09f70,
-                    roughness: 0.55,
-                    metalness: 0.04,
-                    side: THREE.DoubleSide
-                  });
-                }
-              }
+              // Bỏ texture màu đỏ lỗi của AI, thay bằng màu da tự nhiên mịn và giữ nguyên khối 3D
+              child.material = new THREE.MeshStandardMaterial({
+                color: 0xdc9872,
+                roughness: 0.62,
+                metalness: 0.02,
+                side: THREE.DoubleSide
+              });
             }
           });
 
-          // 1. Tự động đo kích thước và căn tâm mô hình vừa khớp dây dẫn
+          // 1. Chuẩn hóa kích thước và đưa tâm hình học về gốc tọa độ
           const box = new THREE.Box3().setFromObject(handClone);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
@@ -3144,17 +3134,17 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
           handClone.scale.setScalar(scaleFactor);
           handClone.position.sub(center.multiplyScalar(scaleFactor));
 
-          // 2. Căn phần khe ngón tay trùng trục dây dẫn (x = 0, z = 0)
+          // 2. Dịch bàn tay sang phải để khe 4 ngón tay ôm đúng trục dây dẫn (x = 0, z = 0)
           const alignedGroup = new THREE.Group();
           alignedGroup.add(handClone);
           alignedGroup.rotation.set(0, 0, 0);
-          alignedGroup.position.set(0.28, 0, 0.02);
+          alignedGroup.position.set(0.50, 0, -0.02);
 
-          // 3. Tâm xoay đặt tại trục dây dẫn, tự động lật úp 180° khi đảo chiều I
+          // 3. Xoay 180° quanh trục Z khi đảo chiều I: ngón cái chỉ xuống và 4 ngón vẫn ôm mặt trước dây
           const pivot = new THREE.Group();
           pivot.add(alignedGroup);
           pivot.position.set(0, 1.24, 0);
-          pivot.rotation.x = isUp ? 0 : Math.PI;
+          pivot.rotation.z = isUp ? 0 : Math.PI;
 
           rightHandGroup.add(pivot);
         };
