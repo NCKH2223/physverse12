@@ -3269,24 +3269,6 @@ if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourc
 
         rightHandGroup.add(pivot);
       }
-        if (window._cachedRightHandGLB) {
-          attachHandToWire(window._cachedRightHandGLB);
-        } else {
-          const loader = new THREE.GLTFLoader();
-          loader.load(
-            'right_hand.glb',
-            (gltf) => {
-              window._cachedRightHandGLB = gltf.scene;
-              if (magState.showRightHand && magState.sourceType === 'wire' && magState.isSourcePlaced) {
-                attachHandToWire(window._cachedRightHandGLB);
-              }
-            },
-            undefined,
-            (err) => console.warn('Không tải được right_hand.glb:', err)
-          );
-        }
-      }
-
       if (magState.sourceType === 'wire') {
         if (capEl) capEl.textContent = `Ngón cái: I (${s > 0 ? 'lên' : 'xuống'}) • 4 ngón: B`;
         if (descEl) {
