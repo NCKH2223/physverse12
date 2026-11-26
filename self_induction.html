@@ -1352,6 +1352,7 @@
     let quizTimerSeconds = 0;
     let quizTimerInterval = null;
     let isQuizUnlocked = false;
+	let isMagneticTheoryConfirmed = false;
     let currentQuestionIndex = 0;
 
     /* =========================================================================
@@ -4052,7 +4053,7 @@ function getRightHandRuleSVGs() {
       const footerAction = isTeachingModal
         ? ''
         : `<div class="flex items-center justify-end pt-1">
-             <button type="button" onclick="switchMagneticTab('quiz')" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg cursor-pointer transition">
+             <button type="button" onclick="confirmMagneticTheoryAndUnlockQuiz()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg cursor-pointer transition">
                <span>Đã nắm vững kiến thức • Làm bài kiểm tra (5 câu)</span>
                <i class="fa-solid fa-arrow-right text-[11px]"></i>
              </button>
@@ -4196,7 +4197,50 @@ function getRightHandRuleSVGs() {
       }
     }
     window.switchTheoryCard = switchTheoryCard;
+   function confirmMagneticTheoryAndUnlockQuiz() {
+      isMagneticTheoryConfirmed = true;
+      isQuizUnlocked = true;
+
+      const btnQuizTab = document.getElementById('btn-tab-quiz');
+      const lockIcon = document.getElementById('quiz-tab-lock-icon');
+
+      if (btnQuizTab) {
+        btnQuizTab.disabled = false;
+        btnQuizTab.removeAttribute('disabled');
+        btnQuizTab.classList.remove('cursor-not-allowed', 'opacity-60', 'bg-slate-800', 'text-slate-500');
+        btnQuizTab.classList.add('glass-card', 'text-slate-300', 'hover:text-white', 'cursor-pointer');
+      }
+      if (lockIcon) {
+        lockIcon.className = 'fa-solid fa-unlock text-[10px] text-emerald-400';
+      }
+
+      currentQuestionIndex = 0;
+      switchMagneticTab('quiz');
+
+      Swal.fire({
+        toast: true, position: 'top-end', icon: 'success',
+        title: 'Đã mở khóa Bài kiểm tra Đánh giá Năng lực!',
+        timer: 1800, showConfirmButton: false, background: '#0f172a', color: '#f3f4f6'
+      });
+    }
+    window.confirmMagneticTheoryAndUnlockQuiz = confirmMagneticTheoryAndUnlockQuiz;
+
     function switchMagneticTab(tab) {
+      const role = sessionStorage.getItem('vl12_role') || localStorage.getItem('vl12_role');
+      const isTeacher = (role === 'teacher');
+
+      if (tab === 'quiz' && !isTeacher && !isMagneticTheoryConfirmed) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Bài kiểm tra đang khóa!',
+          text: 'Em hãy đọc phần Đúc kết kiến thức và bấm nút "Đã nắm vững kiến thức • Làm bài kiểm tra (5 câu)" để mở khóa.',
+          background: '#0f172a',
+          color: '#f3f4f6',
+          confirmButtonColor: '#06b6d4'
+        });
+        return;
+      }
+
       const btnTheory = document.getElementById('btn-tab-theory');
       const btnQuiz = document.getElementById('btn-tab-quiz');
       const contentTheory = document.getElementById('theory-tab-panel');
@@ -4207,7 +4251,11 @@ function getRightHandRuleSVGs() {
 
       if (tab === 'theory') {
         if (btnTheory) btnTheory.className = actCls;
-        if (btnQuiz) btnQuiz.className = normCls;
+        if (btnQuiz) {
+          btnQuiz.className = (isTeacher || isMagneticTheoryConfirmed)
+            ? normCls
+            : 'px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60';
+        }
         if (contentTheory) { contentTheory.classList.remove('hidden'); contentTheory.style.removeProperty('display'); }
         if (contentQuiz) { contentQuiz.classList.add('hidden'); contentQuiz.style.setProperty('display', 'none', 'important'); }
         if (window.MathJax && typeof window.MathJax.typesetPromise === 'function' && contentTheory) {
@@ -4752,6 +4800,13 @@ function getRightHandRuleSVGs() {
           teacherBtn.onclick = openQuestionBankModal;
         }
         isQuizUnlocked = true;
+		  isMagneticTheoryConfirmed = true;
+const lockIcon = document.getElementById('quiz-tab-lock-icon');
+if (lockIcon) lockIcon.className = 'fa-solid fa-unlock text-[10px] text-emerald-400';
+const btnQuizTab = document.getElementById('btn-tab-quiz');
+if (btnQuizTab) {
+  btnQuizTab.className = 'px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all glass-card text-slate-300 hover:text-white border border-slate-700 cursor-pointer';
+}
         autoUnlockNextStage(2);
         autoUnlockNextStage(3);
       } else {
