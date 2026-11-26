@@ -831,9 +831,6 @@
               <p class="text-[10px] text-slate-400">Từ va chạm phân tử vi mô đến đại lượng áp suất vĩ mô</p>
             </div>
           </div>
-          <span class="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold">
-            Thuyết động học phân tử
-          </span>
         </div>
 
         <!-- KHUNG THỬ THÁCH GIẢI MÃ -->
@@ -856,12 +853,13 @@
           <div id="decode-feedback-box" class="hidden text-xs p-3 rounded-xl leading-relaxed font-sans"></div>
 
           <!-- NÚT XÁC NHẬN GIẢI MÃ -->
-          <div class="flex items-center justify-end pt-1">
-            <button id="btn-submit-decode" type="button" onclick="submitDecodeChallenge()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-400 hover:from-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer transition-all">
-              <i class="fa-solid fa-unlock-keyhole"></i>
+         <div class="flex items-center justify-end pt-1">
+            <button id="btn-submit-decode" type="button" onclick="submitDecodeChallenge()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/25 cursor-pointer transition-all">
+              <i class="fa-solid fa-lock"></i>
               <span>Xác nhận giải mã</span>
             </button>
-            <button id="btn-goto-stage3" type="button" onclick="goToStageTab(3)" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-bold text-xs items-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer transition-all animate-pulse">
+            <button id="btn-goto-stage3" type="button" onclick="goToStageTab(3)" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-bold text-xs items-center gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer transition-all animate-pulse">
+              <i class="fa-solid fa-lock-open"></i>
               <span>Đã giải mã thành công • Sang Chặng 3 ➜</span>
             </button>
           </div>
